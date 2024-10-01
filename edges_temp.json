@@ -1,0 +1,40 @@
+{
+    "Dortmund": {
+        "Banja Luka": 1025.2,
+        "Belgrade": 1198.9,
+        "Brasov": 1465.4,
+        "Bucharest": 1573.6,
+        "Budapest": 956.4,
+        "Cluj-Napoca": 1282.0,
+        "Gdansk": 795.5,
+        "Iasi": 1526.0,
+        "Katowice": 812.7,
+        "Kutaisi": 2820.9,
+        "Ohrid": 1525.7,
+        "Podgorica": 1345.5,
+        "Pristina": 1419.8,
+        "Rome Fiumicino": 1136.1,
+        "Sibiu": 1367.0,
+        "Skopje": 1503.7,
+        "Sofia": 1543.6,
+        "Suceava": 1415.3,
+        "Timisoara": 1189.8,
+        "Tirana": 1453.5,
+        "Tuzla": 1138.4,
+        "Varna": 1773.7,
+        "Vilnius": 1230.5,
+        "Yerevan": 3083.4
+    },
+    "Frankfurt": {
+        "Cluj-Napoca": 1263.5,
+        "Kutaisi": 2827.0,
+        "Skopje": 1419.4,
+        "Sofia": 1476.7,
+        "Tirana": 1352.2,
+        "Varna": 1735.3
+    },
+    "Cologne": {
+        "Skopje": 1487.5,
+        "Tirana": 1428.8
+    }
+}
