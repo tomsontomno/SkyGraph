@@ -1,6 +1,6 @@
 {
     "method": "POST",
-    "url": "https://multipass.wizzair.com/en/w6/subscriptions/json/availability/d50b03eb-2498-49b7-a850-6124365cc048",
+    "url": "https://multipass.wizzair.com/de/w6/subscriptions/json/availability/d50b03eb-2498-49b7-a850-6124365cc048",
     "headers": {
         "accept": "application/json",
         "accept-language": "en-US,en;q=0.9,fa-IR;q=0.8,fa;q=0.7,de;q=0.6,fr;q=0.5,nl;q=0.4",
@@ -10,17 +10,17 @@
         "origin": "https://multipass.wizzair.com",
         "pragma": "no-cache",
         "priority": "u=1, i",
-        "referer": "https://multipass.wizzair.com/en/w6/subscriptions/availability/d50b03eb-2498-49b7-a850-6124365cc048",
-        "sec-ch-ua": "\"Google Chrome\";v=\"129\", \"Not=A?Brand\";v=\"8\", \"Chromium\";v=\"129",
+        "referer": "https://multipass.wizzair.com/de/w6/subscriptions/availability/d50b03eb-2498-49b7-a850-6124365cc048",
+        "sec-ch-ua": "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"Linux",
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
-        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-        "x-xsrf-token": "eyJpdiI6IkdPMmJKWENaZEluRThzQ3p3QWRja2c9PSIsInZhbHVlIjoiMGU3cUZHaTBvcURYN205b1FOYm9UOEhTcXBPRlZSb01WT3QwVE5tXC9PTVJuRnNZbG5EcHg2UWNwT0RhV1RYUkFHOGtOMEREVFR1eHA5YitiMXlwc2xRPT0iLCJtYWMiOiI5NjBmYmM5Y2Y2MTQ3YzYwM2NkZThjZTY3ZGMwNjc2MzVlMTIzOTMwYjc0NjM5N2Q5N2UzNzM3NDU2ZmEwZDFkIn0="
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+        "x-xsrf-token": "eyJpdiI6IlNvSmVnem00OGxvbTRRXC96U1FOWXhBPT0iLCJ2YWx1ZSI6IjJKWjUxWjFXejdzU0czSFczSUx3Q1ljUFVIblI5dFN3XC82XC9nYVMxSkRZQkp4a3I5TkJnUTFmUVkwSysyU1lqVW01MEdFaTE0dExrcndYNWQzTFhTN1E9PSIsIm1hYyI6IjBhYmQ4Njc3MDJiNTY4Njc1MzRhYWI2OGU4NjQyNDQyOWQ1NmNmOWQ5ZjI0ZGYwMmM1MTQ4MzkxNTE2OTRiY2EifQ=="
     },
-    "data": "{\"flightType\":\"OW\",\"origin\":\"BEG\",\"destination\":\"LTN\",\"departure\":\"2024-10-04\",\"arrival\":\"\",\"intervalSubtype\":null}",
+    "data": "{\"flightType\":\"OW\",\"origin\":\"AUH\",\"destination\":\"AMM\",\"departure\":\"2024-11-11\",\"arrival\":null,\"intervalSubtype\":null}",
     "cookies": {
         "_fbp": "fb.1.1723670061537.199788277188340288",
         "_tt_enable_cookie": "1",
@@ -41,11 +41,15 @@
         "_ga_YGVXBHR3KK": "GS1.1.1727523808.25.0.1727523808.0.0.0",
         "_ga_Y88LW1YQMB": "GS1.1.1727523848.13.1.1727523857.0.0.0",
         "_ga": "GA1.2.339043541.1723926524",
-        "RequestVerificationToken": "09a3c87bf9c847d5bc90c2dd452372a7",
-        "_abck": "290DF4C9AD5706926F8CA088D77E5F0B~0~YAAQRHcTAuET/DCSAQAAWhg5RAwVyzE1i3+0hAAtqJ8p5ap0LDp7lW8b6ugHTABu0FwcSrRrkIT3v8bRVh1sCkD1QcJC03XzxO4g0DNooUunkVHVhJC2qj8+asEmmmksoLtBzR/NUmvRc/ppvEQL+/+k5i7jds1/fCmz8gkGjIlPwSYefYQpuDFfUJJuHJAn2sZrxsHNshoUXRlFy5tiecg5C7WAJ5zvJGuwcQtwQLn8pJuFrjQZAUZ2WRtHjz98eBJe7i/0bmjqcphyCLYMVxxkofnhfnIo1B3hUNCYKzzsPIVE5KGUEwd+Ln5AVbOhDxkK9GO/nr/YRx3zrCfBw/KNIQsEUR9qIkmPn4C11dHTT3BPi384GTg5R4J+8DB4sWJSt2weN0UnLi3m9ckp1GPlKDGL2/1AP0CJPSb3THTayo3rZKkr3+uE0+FBF/U4x+cyBm8C79vKrR66J2H+dVyjUsuvNn1qAX5dyLWvUKX88nh4mn63rlrJ2AgD0rUEEAJ1U5i4Qjl/pl5P8vDwfZErmslBsBpOCiCi7kUNNNYtHUTskll2Ck2mSElcaHDr4N+T1xTlyxwhBICbP5IHGZJjj76+C77c/z5No/8=~-1~-1~-1",
-        "REPORT_LOGIN_EVENT": "eyJpdiI6IjV6bTRtVHNaMW8reGYwdnlpczc4Tnc9PSIsInZhbHVlIjoieEN5KzFoelh6N3oxbUh6ZGxxb0lVRjE3TTFsMGdVXC9VMHZEWERLMnpURFFjbE1IWkpKeXZVTzBwb0NDVUgydnAiLCJtYWMiOiI1MjBkMjYxMDFjMWJlNTM3MDRlMmU2YmVlYTMwNGFmNWFkMTI0MzI5MjZiNWYyNGMxYzliNmRkNmM2MTcwNGU4In0%3D",
-        "XSRF-TOKEN": "eyJpdiI6IkdPMmJKWENaZEluRThzQ3p3QWRja2c9PSIsInZhbHVlIjoiMGU3cUZHaTBvcURYN205b1FOYm9UOEhTcXBPRlZSb01WT3QwVE5tXC9PTVJuRnNZbG5EcHg2UWNwT0RhV1RYUkFHOGtOMEREVFR1eHA5YitiMXlwc2xRPT0iLCJtYWMiOiI5NjBmYmM5Y2Y2MTQ3YzYwM2NkZThjZTY3ZGMwNjc2MzVlMTIzOTMwYjc0NjM5N2Q5N2UzNzM3NDU2ZmEwZDFkIn0%3D",
-        "laravel_session": "eyJpdiI6IkxQN3dOM2NTbFdQdGphYThYV2VYalE9PSIsInZhbHVlIjoiTmp1dGV4bnYyVThadFNMczdEc2tcL2hDV1RaRjBNY1NZQXNTWGRINTMzd1EzTzVQSVhcL0VjYWUzbE1Zemp1RkZxZTVMbXBaejFtVmxtcWlKU0NBU1wvM0E9PSIsIm1hYyI6IjExMDI3YmJmZGY0Mjk5N2U2MTI3OGZiNjNjMjlkYWJkZDM4YTg0ZmQ0OWFjMGM4OTljMjEyYTNlYzg0ZDYzNTgifQ%3D%3D",
-        "AWSALBAPP-0": "AAAAAAAAAAACj1VTOuG9nb5KZQvDckIBTU/HsahXsxVh2GxqcPahwyFs7Ta4ztFl1f4CEMAKKOuJL8HRDkd51DueA/+rnT17grd5kE6QXpwWFzTUGZuzwsK0FoaPIoiFUHlcOisxiaunZw=="
+        "ak_bmsc": "B0774109EC15FAB0466A825BAD650B15~000000000000000000000000000000~YAAQFlJzaC2+qeSSAQAA6558EhmRBAqcr99eOPhqOtsS4VnjgFIOYtz6qH8K1AsaiwdCj9NYclCf5PipCbI+Q/32gX/M3ciDNeK5fwY+R3i69KqTX3dWOKK7vvHklr4+ZOm021xmx2Xn6BdZtfjpSluBURqVvwT/bW++d+ColixWhWVnJ5tNvs6mgLlQgKkElacx3INA4pHORkioUjexxRLbkrXlr464hc1mIECcAZevVyd+5pG8zS4AioUABwIcdj5jkKCVeVlsQHXpN9PHnjfYUfByGSEPKay3lubBlLOH9d3yDORaMOqtiBrRG3yhtQZXDWjPWmzAzgOtSszCYi3Exk9pfC8OBcIPAbgPGdXbPC3c3pdi2mbi8GBm0/4Ch4QGG1wGS/1yVDbCHvCUWeiHH2ZRneZokvqUMwSJbFaMG/WZ",
+        "RequestVerificationToken": "c9834919af8a46c580ce02bb5bb48e65",
+        "bm_mi": "30B1BD715013A6CC352CDE0F837AE0D3~YAAQFlJzaJHFqeSSAQAA7yZ9EhlIY8OUMRykQg+tIrvhSlnNIcCntP330ei1oZeRT1b0m4tggDWDyzdpYXa6G7hD4BpO36jd4D8AdPQ/9sJpSDKTIY6VtoXaMgcUl/L6k7SHuFryo93QEw2uFeImii/SFxwLV2RCQEL/lWNsyLy1+eJE9CnmGQmAMBHuYxH+Yy9B//uZvHdR+CZlPpFPm+4cypDA8gWOUOM8/+DwF3yutXH3EgzOsQdOg5BTqzyG6itLb+tVlbLX1/cht1V9POMny+cWcEcHA4jyaweEznZGbhK5gP1vnWDbzFxOSg8QNnoWQJ0jl3iw03mwhyN4qlZByMnq4pGXUYYR5BZZmw==~1",
+        "_abck": "290DF4C9AD5706926F8CA088D77E5F0B~0~YAAQFlJzaE3HqeSSAQAA80V9EgzvKKWsheSeLZ3oBoeoIC76mVsNAEsovgYKr8UCzIWo+5Lot1o8RZPQo9AVPTtCvDpiGgZLX7emiCkbhwKn/P5LNpTDjYNzs4HYJ5v4YzwCWK46ul5ezTGggfBO2UXhOnUMfnBRdIqTWg+ahKRx1OzOVxzaWfE62VRAirmB6ZWbJz5ovW/fDai9xoPODnUND7T3wvoFFzVvEO3zZcwXhyCb4jwnuHYvRP65iE5epkR/l0R4cpSTgqw38De/I1p8qERrhQtoHQ1rQfg7BxTtKg1TCMCEReprSRGhU8IWyU/8jCEYqpL3J02+ZQGVtqStjEGL49w0cw68zDc4lnw1k/BuynY3EiGYxjMwjV4cBTDu5d08hqMAkc27Loncc3wj7IF4NE12GT9FW3RuhtBZ7vnUeCLdXEZnyd4wMDn6naFIyNvru3cpcobQatH9xw9HjQhq2iVCO5JA1kGJbR06soDjEZ+6IdzudFmmGDvCrqVdL9jW05OTukGzJ2eoCTQRFEC3PKL0xbPY1Gh77gLPNqVFyOxBVl9Fr6RUHegHIDpfdLoL1EFDamaDFrrSbL3PYuFkG7PNCHRC5NIqB/OkRgwtlQNwOpgLmL2LzdIoqqOibod0u2KIs4sqj/fw1OUouCVTHCySrOTwqouI/zc/NAoRmCyUmDA9gm8CKHW+UqAgz1t7n8hngwBTQAusssKmqY6Msw==~-1~-1~-1",
+        "bm_sz": "4B7D6E50519FB53C8707E9CF779C1E15~YAAQFlJzaE/HqeSSAQAA80V9EhkVyetUFzJTUE4ls6VbkCd48fEntympp9KWgREwBhkVIKHKWiCxknbYbZDsgECrnDWFzgtCxfUFyzErfiaEtA0D3bqjzlohHMOU4qxWM2cGyitVonl4PL68uSYE/5bBmoKoASQXrGfGQrHCA7L0iaD21rP4m289Cu0NJj2WMqAJgUD/+1q2oE67cJIYNuV5/s9O3MYaPIR5UiMuwDgiftmoRv3QHWKzggy/ha2yZNfErUplG029gQBErHQC6gxiKgiaYuGV1SwWGBpGxx/ivv1ByLDn2guw7Zp+LaIkUwRrTowdQH9hrpICskVIAFrnzQSIo5xeDptqjSv45Z2f77/RTbbKkYWh5/0+7/V/j9LvZCQTXen1hH8NPp/S17kjzqn45m5BKI7UkF/YjblUf14iRBD4vgg0H8KRfKxezDNAtuEEHGER1amQaAg4IZoBEsEEcwfY0uoCfCo=~3163440~3227971",
+        "bm_sv": "A3F1968DF68588253C13E2120C9B556D~YAAQFlJzaJ7HqeSSAQAA4Up9EhkuiYODYTfxzYrWXSeBqAYv73DNVcS7POHMJcPI0x2oLXvNUAwuUMrAfMWTDmvEXE9sCmL88132t4wI0yWQ9Jy4a0nlh9jUPSTTwUCMDSrTW52E+4RnamJMi58Q1iET08Aw8C6VBE+UVR7ej9ITcQaED5hlWHCqP1cud1AMVORgCioy3k7MqzL9wZWkaFszbnLIEoBLljDESG8FqMC04nO2JEKs0FaUmTtVQ45kvsM=~1",
+        "REPORT_LOGIN_EVENT": "eyJpdiI6IkVFUkhmcTdjSXRISmVyNDdCd01uaVE9PSIsInZhbHVlIjoick1VZDhjbmhJNUVrajhjSWprYitScmw1R1doWjA4Q1YyOUgzalwvM2VnSW1xVXlsZ0dVZjFTM2tKdzI5dmRNNnEiLCJtYWMiOiJhMjgzZjNlYzQzN2UyMjQwZWRiNGQ0NGQ1NTcxMjQ2M2UxMDY4OWMwMGNiMjdkNzdlMjliODhhNTQ4MGFhMWFlIn0%3D",
+        "XSRF-TOKEN": "eyJpdiI6IlNvSmVnem00OGxvbTRRXC96U1FOWXhBPT0iLCJ2YWx1ZSI6IjJKWjUxWjFXejdzU0czSFczSUx3Q1ljUFVIblI5dFN3XC82XC9nYVMxSkRZQkp4a3I5TkJnUTFmUVkwSysyU1lqVW01MEdFaTE0dExrcndYNWQzTFhTN1E9PSIsIm1hYyI6IjBhYmQ4Njc3MDJiNTY4Njc1MzRhYWI2OGU4NjQyNDQyOWQ1NmNmOWQ5ZjI0ZGYwMmM1MTQ4MzkxNTE2OTRiY2EifQ%3D%3D",
+        "laravel_session": "eyJpdiI6Imd0T1pob3JLUFR5T1c5RThydGQxaHc9PSIsInZhbHVlIjoiSlYzajFhWlF3VGZYS3Fma1p2N29TbklwMVhWNFZiXC9PY3A2MTVMSzROalpiWmJLSUxxMjlJcW1ZQkpuVmQyNG1kV0ZnVk92blwvam5NUFROUGxPdUI3dz09IiwibWFjIjoiNWY5N2MwOTNlNDQzYWFiZTI2NmFjYTcyMGQ2Mjc0NzVmNzQ1MTE3NzM3M2Y0ZjJkNTBiNjg3NDRlMzAxMGEzZiJ9",
+        "AWSALBAPP-0": "AAAAAAAAAAC+qrvAJohyKX06EwXo3bWNEsN/xj6Yj9Y3qAblu0q8vu3UnNpFWWaK+1OOiM/uQeCDrpaEycOvvyGmJpUOXg9/D3T9jFrRjnDwI9BSfYn8egU59bHY+1xEpEkcteuwfCImHg=="
     }
 }

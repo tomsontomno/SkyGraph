@@ -76,10 +76,18 @@ def convert_json_to_graph_and_save(json_file_path, output_file_path):
     save_graph_to_pickle(graph, output_file_path)
 
 
-# Usage example:
-if __name__ == "__main__":
+def convert():
     json_file_path = './flight_graph/' + str(input("filename Graph:\n"))  # Path to your JSON file
     output_file_path = 'graph.pkl'  # Path where the graph will be saved
 
     # Convert the JSON to a directed graph and save it
     convert_json_to_graph_and_save(json_file_path, output_file_path)
+
+
+def main():
+    convert()
+
+
+# Usage example:
+if __name__ == "__main__":
+    main()

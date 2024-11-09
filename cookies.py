@@ -87,7 +87,7 @@ def get_curl_command_input():
     """
     Reads a multi-line curl command input from the user until an empty line is encountered.
     """
-    print("Paste your curl command (end with an empty line):")
+    print("Paste your curl command and end with an empty line (or just press Enter to use already saved cookie):")
     curl_lines = []
     while True:
         try:
@@ -98,7 +98,9 @@ def get_curl_command_input():
         except EOFError:
             break  # End of file (Ctrl+D)
 
-    return '\n'.join(curl_lines)
+    if curl_lines:
+        return '\n'.join(curl_lines)
+    return ""
 
 
 def save_to_file(data):
@@ -120,19 +122,32 @@ def load_from_file():
 
 
 def save_cookies():
-    # Enter new curl command
+    """
+    Reads a curl command from the user, parses it, and saves cookies and request data.
+    If the user inputs an empty command (double enter), retain the previous cookies.
+    """
     curl_command = get_curl_command_input()
-    method, url, headers, data = parse_curl_command(curl_command)
-    cookies = extract_cookies(headers)
 
-    # Save the original curl command to the file
-    save_to_file({
-        'method': method,
-        'url': url,
-        'headers': headers,
-        'data': data,
-        'cookies': cookies
-    })
+    if curl_command.strip():  # Check if the command is not empty
+        method, url, headers, data = parse_curl_command(curl_command)
+        cookies = extract_cookies(headers)
+
+        # Save the parsed data to the file
+        save_to_file({
+            'method': method,
+            'url': url,
+            'headers': headers,
+            'data': data,
+            'cookies': cookies
+        })
+        print("SAVED")
+    else:
+        # Retain the old cookies by loading the previous data
+        previous_data = load_from_file()
+        if previous_data:
+            print("No new data entered. Using previously saved cookies:")
+        else:
+            print("No previous data found. Nothing to save.")
 
 
 # Run the main function

@@ -1,13 +1,16 @@
 import asyncio
+import time
+from playsound import playsound
 import aiohttp
 import pickle
 import iata
 import json
 import networkx as nx
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 import re
 import os
 import pytz
+from cookies import save_cookies
 
 
 def parse_utc_offset(offset_str):
@@ -83,12 +86,12 @@ def format_flight_response(response_json, origin, destination, departure_date):
 
     # Check if the response is None or no flights were found
     if response_json is None:
-        return f"{departure_date_formatted}, {origin} -> {destination}: FAIL"
+        return f"{departure_date_formatted}, {origin} -> {destination}: FAIL - {response_json}"
 
     outbound_flights = response_json.get('flightsOutbound', [])
 
     if not outbound_flights:
-        return f"{departure_date_formatted}, {origin} -> {destination}: FAIL"
+        return f"{departure_date_formatted}, {origin} -> {destination}: FAIL - {response_json}"
 
     # Extract departure times
     departure_times = []
@@ -109,51 +112,76 @@ def format_flight_response(response_json, origin, destination, departure_date):
         return f"{departure_date_formatted}, {origin} -> {destination}: SUCCESS, {num_flights} flights found at {times_formatted} local time"
 
 
-async def make_async_request(session, method, url, headers, data, cookies, origin, destination, departure_date, timeout_duration=30):
+def is_cookie_expired(response):
+    headers = response.headers
+    if 'Expires' in headers:
+        print(headers)
+        return True
+    else:
+        return False
+
+
+async def make_async_request(session, method, url, headers, data, cookies, origin, destination, departure_date,
+                             timeout_duration=30, verbose=False):
     """
-    Sends an asynchronous HTTP request using aiohttp, with custom timeout handling.
+    Sends an asynchronous HTTP request using aiohttp, with custom timeout handling and connection error recovery.
     Returns the parsed response JSON and prints the formatted message.
     """
     timeout = aiohttp.ClientTimeout(total=timeout_duration)  # Set a custom timeout
-    if method.upper() == 'POST':
+
+    while True:  # Retry loop
         try:
-            json_data = json.loads(data)
-            async with session.post(url, headers=headers, json=json_data, cookies=cookies, timeout=timeout) as response:
-                if response.status == 200:
-                    response_json = await response.json()
-                    print(format_flight_response(response_json, origin, destination, departure_date))  # Print the formatted result
-                    return response_json  # Return the parsed response JSON
-                else:
-                    print(format_flight_response(None, origin, destination, departure_date))  # Print the fail message
-                    return None
-        except json.JSONDecodeError:
-            async with session.post(url, headers=headers, data=data, cookies=cookies, timeout=timeout) as response:
-                if response.status == 200:
-                    response_json = await response.json()
-                    print(format_flight_response(response_json, origin, destination, departure_date))  # Print the formatted result
-                    return response_json  # Return the parsed response JSON
-                else:
-                    print(format_flight_response(None, origin, destination, departure_date))  # Print the fail message
-                    return None
+            if method.upper() == 'POST':
+                try:
+                    json_data = json.loads(data)
+                    async with session.post(url, headers=headers, json=json_data, cookies=cookies, timeout=timeout) as response:
+                        return await handle_response(response, origin, destination, departure_date, verbose)
+                except json.JSONDecodeError:
+                    async with session.post(url, headers=headers, data=data, cookies=cookies, timeout=timeout) as response:
+                        return await handle_response(response, origin, destination, departure_date, verbose)
+            else:
+                async with session.request(method, url, headers=headers, cookies=cookies, timeout=timeout) as response:
+                    return await handle_response(response, origin, destination, departure_date, verbose)
+
+        except aiohttp.ClientConnectorError as e:
+            print(f"Connection error: {e}")
+            print("Please check your internet connection. Press Enter when the connection is stable to try again.")
+            input()  # Wait for user confirmation before retrying
+
         except asyncio.TimeoutError:
             print(f"{departure_date}, {origin} -> {destination}: TIMEOUT")  # Print timeout message
             return None
+
+
+async def handle_response(response, origin, destination, departure_date, verbose):
+    """
+    Handles the response object and performs common logic for different response statuses.
+    """
+    if response.status == 200:
+        response_json = await response.json()
+        if verbose:
+            print(format_flight_response(response_json, origin, destination, departure_date))  # Print the formatted result
+        return response_json  # Return the parsed response JSON
+    elif response.status == 500:
+        print(response.status)
+        if is_cookie_expired(response):
+            # notify_success("COOKIES EXPIRED")
+            print("COOKIES EXPIRED")
+            print(datetime.now().strftime("%H:%M:%S"))
+            save_cookies()
+        print(datetime.now().strftime("%H:%M:%S"))
+    elif response.status == 429:
+        print("Too many requests at: " + datetime.now().strftime("%H:%M:%S"))
+        print("Waiting until:", (datetime.now() + timedelta(minutes=10)).strftime("%H:%M:%S"))
+        time.sleep(600)
     else:
-        try:
-            async with session.request(method, url, headers=headers, cookies=cookies, timeout=timeout) as response:
-                if response.status == 200:
-                    response_json = await response.json()
-                    print(format_flight_response(response_json, origin, destination, departure_date))  # Print the formatted result
-                    return response_json  # Return the parsed response JSON
-                else:
-                    print(format_flight_response(None, origin, destination, departure_date))  # Print the fail message
-                    return None
-        except asyncio.TimeoutError:
-            print(f"{departure_date}, {origin} -> {destination}: TIMEOUT")  # Print timeout message
-            return None
+        if verbose:
+            print(format_flight_response(None, origin, destination, departure_date))  # Print the fail message
+        print(response.status)
+        return None
 
 
-async def async_custom_request(session, origin, destination, departure_date):
+async def async_custom_request(session, origin, destination, departure_date, verbose=False):
     """
     Asynchronous version of custom_request using aiohttp.
     """
@@ -174,15 +202,21 @@ async def async_custom_request(session, origin, destination, departure_date):
         data = update_data_raw(data, origin=origin, destination=destination, departure=departure_date)
 
     # Make the request and pass the additional parameters
-    response_json = await make_async_request(session, method, url, headers, data, cookies, origin, destination, departure_date)
+    response_json = await make_async_request(session, method, url, headers, data, cookies, origin, destination,
+                                             departure_date, verbose=verbose)
+
     return response_json
 
 
-async def fetch_flight_data(semaphore, session, origin, destination, departure_date_str, ready_up_time, now):
+async def fetch_flight_data(semaphore, session, origin, destination, departure_date_str, ready_up_time, now,
+                            verbose=False):
     async with semaphore:
-        await asyncio.sleep(0.04)
+        await asyncio.sleep(0.200)
         flight_data_json = await async_custom_request(session, iata.city2iata[origin], iata.city2iata[destination],
-                                                      departure_date_str)
+                                                      departure_date_str, verbose=verbose)
+        if flight_data_json == -1:
+            return -1
+
         if flight_data_json:
             outbound_flights = flight_data_json.get('flightsOutbound', [])
             flights = []
@@ -225,8 +259,8 @@ async def fetch_flight_data(semaphore, session, origin, destination, departure_d
 
                 # Calculate the time difference in UTC
                 time_diff = (
-                    departure_datetime.astimezone(timezone.utc) - now
-                ).total_seconds() / 3600  # Convert to hours
+                                    departure_datetime.astimezone(timezone.utc) - now
+                            ).total_seconds() / 3600  # Convert to hours
 
                 # Check if the flight departs at least 'ready_up_time' hours from now
                 if time_diff >= ready_up_time:
@@ -241,7 +275,7 @@ async def fetch_flight_data(semaphore, session, origin, destination, departure_d
             return None
 
 
-async def build_flight_graph(city_pairs, start_date, num_days, ready_up_time, max_concurrent_requests=2):
+async def build_flight_graph(city_pairs, start_date, days, ready_up_time, max_concurrent_requests=2, verbose=False):
     graph = nx.DiGraph()  # Directed graph
     utc_plus_2 = pytz.FixedOffset(120)
     now = datetime.now(utc_plus_2)
@@ -253,11 +287,11 @@ async def build_flight_graph(city_pairs, start_date, num_days, ready_up_time, ma
         tasks = []
         for origin, destinations in city_pairs.items():
             for destination in destinations:
-                for day_offset in range(0, num_days + 1):
+                for day_offset in days:
                     date = start_date + timedelta(days=day_offset)
                     departure_date_str = date.strftime("%Y-%m-%d")
                     task = fetch_flight_data(semaphore, session, origin, destination, departure_date_str, ready_up_time,
-                                             now)
+                                             now, verbose=verbose)
                     tasks.append(task)
 
         results = await asyncio.gather(*tasks)
@@ -288,15 +322,17 @@ def graph_to_json(graph):
     return graph_dict
 
 
-def main():
-    city_pairs = load_edges_from_file("edges.json")
+def run_scan(filepath, verbose=False, num_days=None):
+    if num_days is None:
+        num_days = [0, 1, 2, 3]
+
+    city_pairs = load_edges_from_file(filepath)
 
     start_date = datetime.now()
-    num_days = 3  # Fetch flights for today + 3 upcoming days
     ready_up_time = 0  # Disregard flights departing in less than 3 hours
 
     # Build the flight graph asynchronously
-    flight_graph = asyncio.run(build_flight_graph(city_pairs, start_date, num_days, ready_up_time))
+    flight_graph = asyncio.run(build_flight_graph(city_pairs, start_date, num_days, ready_up_time, verbose=verbose))
 
     # Convert graph to JSON
     flight_json = graph_to_json(flight_graph)
@@ -319,7 +355,91 @@ def main():
         json.dump(flight_json, f, indent=4)
 
     print(f"Flight graph saved to {file_path}")
+    return file_path
 
 
-if __name__ == "__main__":
-    main()
+def run_edges_temp(verbose=False, num_days=None):
+    """
+    Runs a one-time check on the 'edges_temp.json' file.
+    If the file exists, is not empty, and contains valid JSON data,
+    it plays a sound and stops execution.
+    """
+    print("Started temp dataset at: " + datetime.now().strftime("%H:%M:%S"))
+    file_path = run_scan("edges_temp.json", verbose, num_days=num_days)  # Run the main function and get the file path
+
+    # Check if the file isn't empty and contains valid JSON data
+    if os.path.exists(file_path):  # Ensure the file exists
+        with open(file_path, "r") as f:
+            try:
+                data = json.load(f)  # Try loading JSON data
+                if data:  # If the file is not empty (valid JSON and has content)
+                    playsound("success.mp3")
+                    print("Flights refilled at: " + datetime.now().strftime("%H:%M:%S"))
+                else:
+                    print("File is empty at: " + datetime.now().strftime("%H:%M:%S"))
+                    time.sleep(5)
+                    return 1
+            except json.JSONDecodeError:
+                print("File is empty or contains invalid JSON.")
+                time.sleep(5)
+                return 1
+    return 0
+
+
+def run_edges(verbose=False, num_days=None):
+    """
+    Runs a one-time check on the 'edges.json' file for updates.
+    If the file exists, is not empty, and contains valid JSON data,
+    it plays a sound and returns 0 after valid check.
+    """
+    print("Started real dataset at: " + datetime.now().strftime("%H:%M:%S"))
+    file_path = run_scan("edges.json", verbose=verbose, num_days=num_days)  # Run the main function and get the file path
+    time.sleep(3)
+    # Check if the file isn't empty and contains valid JSON data
+    if os.path.exists(file_path):  # Ensure the file exists
+        with open(file_path, "r") as f:
+            try:
+                data = json.load(f)  # Try loading JSON data
+                if data:  # If the file is not empty (valid JSON and has content)
+                    playsound("success.mp3")
+                else:
+                    print("File is empty at: " + datetime.now().strftime("%H:%M:%S"))
+                    return 1
+            except json.JSONDecodeError:
+                print("File is empty or contains invalid JSON.")
+                return 1
+    return 0
+
+
+if __name__ == '__main__':
+    save_cookies()
+
+    x = 0
+    current_time = datetime.now() + timedelta(seconds=x)
+    print("RUNNING AT: " + current_time.strftime("%H:%M:%S"))
+    time.sleep(x)
+
+    run_edges(True, [1, 2, 3])
+    playsound("success.mp3")
+    # notify_success("SUCCESSFULLY RAN ALL THE EDGES AND RETURNED.")
+
+# todo tester to see when the new flights of a day are going to be released.
+"""
+    i = 1
+    print("TEST START")
+    playsound("success.mp3")
+    while run_edges(True, [3]) == 1:
+        print(i, "TEST")
+        i += 1
+        time.sleep(60)
+    playsound("success.mp3")
+    playsound("success.mp3")
+    playsound("success.mp3")
+    playsound("success.mp3")
+    playsound("success.mp3")
+    playsound("success.mp3")
+    run_edges(True)
+    playsound("success.mp3")
+    playsound("WAKE_UP.mp3")
+    notify_success("SUCCESSFULLY RAN ALL THE EDGES AND RETURNED. ITS CURRENTLY" + datetime.now().strftime("%H:%M"))
+"""
