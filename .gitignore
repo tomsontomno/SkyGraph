@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+env/
+
+# Logs
+*.log
+data/logs/
+
+# Data artifacts and intermediate outputs
+*.pkl
+*.json
+# *.txt  <-- Commented out to allow requirements.txt
+!requirements.txt
+
+# Output archives
+data/archives/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE configs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Secrets and env files
+.env
+.env.*
+
+# Misc folder — not actively used scripts
+misc/
+
+# OS-specific
+ehthumbs.db
+Icon?

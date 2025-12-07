@@ -1,0 +1,25 @@
+{
+    "method": "POST",
+    "url": "https://multipass.wizzair.com/en/w6/subscriptions/json/availability/d50b03eb-2498-49b7-a850-6124365cc048",
+    "headers": {
+        "accept": "application/json",
+        "accept-language": "en-US,en;q=0.9,fa-IR;q=0.8,fa;q=0.7,de;q=0.6,fr;q=0.5,nl;q=0.4",
+        "cache-control": "no-cache",
+        "content-type": "application/json",
+        "dnt": "1",
+        "origin": "https://multipass.wizzair.com",
+        "pragma": "no-cache",
+        "priority": "u=1, i",
+        "referer": "https://multipass.wizzair.com/en/w6/subscriptions/availability/d50b03eb-2498-49b7-a850-6124365cc048",
+        "sec-ch-ua": "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Linux",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+        "x-xsrf-token": "eyJpdiI6IkxpWk9YZUx0a2NxbHpBZFlRMzFWcEE9PSIsInZhbHVlIjoiRXNwZ3hYeWl5SUtiVFhwY3J5N0FtNzVaMzVxXC9sclIrUkp2RStMOE80cldNblwvNk81U2czRWRCR0VKWmI3NDlURnh5K2lmN0tDXC9GNU9oNGkwZTZVdmc9PSIsIm1hYyI6IjU0OGEwMDE3MDg5NTEzM2RhNTQxNTAzZWFmNGI4NjZjMDcyMWYxMjc5YjhiN2U4NTBjMDNkZDhiMjgyOTFkZjcifQ=="
+    },
+    "data": "{\"flightType\":\"OW\",\"origin\":\"AES\",\"destination\":\"GDN\",\"departure\":\"2025-03-26\",\"arrival\":null,\"intervalSubtype\":null}",
+    "cookies": "_fbp=fb.1.1740396168348.892074536820557685; OptanonAlertBoxClosed=2025-02-24T11:22:53.223Z; _gcl_au=1.1.684672423.1740396173; _hjSessionUser_2830831=eyJpZCI6ImIxNGYxYzA1LTliMTYtNTlkMC04ZjllLTU2YmVhMjM2N2VlNSIsImNyZWF0ZWQiOjE3NDAzMjM2NDk3NTQsImV4aXN0aW5nIjp0cnVlfQ==; _hjSessionUser_3488145=eyJpZCI6IjBkNGE3OWQ2LTAxOTUtNTNiNy04MjE5LTZmMTEzYjhkNTllMiIsImNyZWF0ZWQiOjE3NDAzMjM5Mzk5NTUsImV4aXN0aW5nIjp0cnVlfQ==; AWX_RISK_ID=ca6b84e3fed9025503c665c349fc69b39c56ccc1_250228; __AWX_TEMP_F_D__=74fc82271ed8e51adbbf189bd1c3b575; OptanonConsent=isGpcEnabled=0&datestamp=Mon+Mar+03+2025+16%3A19%3A42+GMT%2B0100+(Central+European+Standard+Time)&version=202404.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&consentId=beafc80a-8226-43ef-a9f4-00db64b437ea&interactionCount=1&isAnonUser=1&landingPath=NotLandingPage&groups=C0004%3A1%2CC0003%3A1%2CC0002%3A1%2CC0001%3A1%2CC0007%3A1&intType=1&geolocation=DE%3BNW&AwaitingReconsent=false; _ga_CLN8TZXB9T=GS1.1.1741015175.4.1.1741016873.60.0.0; _ga_G2EKSJBE0J=GS1.1.1741015157.4.1.1741016873.60.0.0; AWSALBAPP-1=_remove_; AWSALBAPP-2=_remove_; AWSALBAPP-3=_remove_; _gid=GA1.2.507890527.1742854037; _hjSession_3488145=eyJpZCI6IjY2MjM4MzQ0LWY5MGQtNDljZS05ZWJlLTc3MGNhYjBiZDEyMCIsImMiOjE3NDI4ODQ4NTY0MjIsInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjowfQ==; REPORT_LOGIN_EVENT=eyJpdiI6ImhDVnFCM1VnbGNNeHhFVlkxNENTQ2c9PSIsInZhbHVlIjoiXC9CR3k2Z2ZtOGFhdEliK2VuY2lJRUdzV1RyN1FITWxuQ05seHlra0NKTW42Zmc1V29ra0h4cGoxa3Rjd1ZmTTQiLCJtYWMiOiI3YjdiN2Y0ODMyNWMzMzBiNzhiNWJhNjZmOWZlNTU0YTYyNzg4NTc4NTU1ZTE2NmNmZWVmMWU0ZjQzZGI2OGRhIn0%3D; _hjSession_2830831=eyJpZCI6IjIwYjM4YjVlLTFkNjItNDFiYy1hNTE2LTE5ZjY5MGZjZjAyMyIsImMiOjE3NDI4ODQ4NjM5OTEsInMiOjAsInIiOjAsInNiIjowLCJzciI6MCwic2UiOjAsImZzIjowfQ==; _gat_UA-26916529-1=1; _ga=GA1.1.150463307.1740323650; _ga_YGVXBHR3KK=GS1.1.1742884864.16.1.1742884948.0.0.0; _ga_Y88LW1YQMB=GS1.1.1742884854.22.1.1742884950.0.0.0; XSRF-TOKEN=eyJpdiI6IkxpWk9YZUx0a2NxbHpBZFlRMzFWcEE9PSIsInZhbHVlIjoiRXNwZ3hYeWl5SUtiVFhwY3J5N0FtNzVaMzVxXC9sclIrUkp2RStMOE80cldNblwvNk81U2czRWRCR0VKWmI3NDlURnh5K2lmN0tDXC9GNU9oNGkwZTZVdmc9PSIsIm1hYyI6IjU0OGEwMDE3MDg5NTEzM2RhNTQxNTAzZWFmNGI4NjZjMDcyMWYxMjc5YjhiN2U4NTBjMDNkZDhiMjgyOTFkZjcifQ%3D%3D; laravel_session=eyJpdiI6IlVUYU5OWFdzQjRUN2NKQzI3aHdVSVE9PSIsInZhbHVlIjoiTkdTUm50WVNLcUtCNzM5UDdWTUYyeDRvWm01RlJjMG9Pa2NHVTVmZnNMRGpKTXNHdmtkZE1VeXBxRzBJQlQ3M2M1Z2wxbVVBTlpOeXdEZVNVd3pcL0JnPT0iLCJtYWMiOiJkYTI2YTM3ZjAxY2NiZjA3NDE2ZDM1ZWQ5NzgzODQ4ZWI5YWUzNzAyNTlmNmRlZWM2ZjRlYzk3ZjhkNDg1NzhjIn0%3D; AWSALBAPP-0=AAAAAAAAAABgL85rIQmRB3DxBQRxbg12QOxsm3gvIABUuWhHGojOTSG/JjzIP0gKNdy4Ifb02+uUCg+7Nd3n3oVtlGKXI3DGMBSq2z4ujHbHG7EKc1795+3QNFXLQfox+8ICPJAGeu1DZQ=="
+}
