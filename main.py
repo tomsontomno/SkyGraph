@@ -12,33 +12,38 @@ logger = logging.getLogger("main")
 
 async def async_main(manually_enter_cookies=False, days=None, verbose=False):
     """
-    Run the async flight fetcher and route analysis pipeline.
+    Orchestrates the asynchronous flight data acquisition and route analysis pipeline.
+
+    Args:
+        manually_enter_cookies (bool): If True, prompts user for manual cookie entry.
+        days (list[int], optional): List of day offsets to scan. Defaults to [0, 1, 2, 3].
+        verbose (bool): Enables detailed logging if True.
     """
     days = days or [0, 1, 2, 3]
 
-    # Step 1: Get cookies
+    # Step 1: Credential Management
     if manually_enter_cookies:
-        logger.info("Saving cookies manually...")
+        logger.info("Initiating manual cookie entry...")
         cookies.save_cookies()
     else:
-        logger.info("Running cookie automation...")
+        logger.info("Executing automated cookie retrieval...")
         cookie_main.main()
 
-    # Step 2: Run the flight data fetcher
-    logger.info("Starting flight data fetcher...")
+    # Step 2: Data Acquisition
+    logger.info("Initializing flight data fetcher...")
     await fetcher.main(days=days, verbose=verbose)
 
-    # Step 3: Run the route finder
-    logger.info("Starting route finder...")
+    # Step 3: Route Analysis
+    logger.info("Executing route finding algorithm...")
     route_find.main()
 
 
 def main(days=None, manually_enter_cookies=True, verbose=False):
     """
-    Entry point for the program.
+    Application entry point. Configures logging and triggers the async event loop.
     """
     days = days or [0, 1, 2, 3]
-    logger.info(f"Main process started with days={days}, manually_enter_cookies={manually_enter_cookies}")
+    logger.info(f"Process initialized. Parameters: days={days}, manual_cookies={manually_enter_cookies}")
     asyncio.run(async_main(
         manually_enter_cookies=manually_enter_cookies,
         days=days,

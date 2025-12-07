@@ -22,10 +22,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
 
 # Global states
-n = 100  # Use all 100 proxies
-m = 1  # One request per proxy per cycle
+# Global configuration
+n = 100  # Total proxy pool size
+m = 1  # Requests per proxy per rotation cycle
 proxy_manager = ProxyManager(window_size=n, requests_per_proxy=m)
-MAX_CONCURRENT_REQUESTS = 3  # Increased to 100 for faster execution
+MAX_CONCURRENT_REQUESTS = 3  # Concurrency limit to prevent rate limiting
 
 global_wait_event = asyncio.Event()
 global_wait_event.set()
@@ -44,7 +45,7 @@ def update_proxies_file():
     headers = {"Authorization": f"Token {api_token}"}
 
     try:
-        logger.info("Loading newest proxy list...")
+        logger.info("Fetching proxy list from remote provider...")
         response = requests.get(proxies_url, headers=headers, timeout=10)
         response.raise_for_status()
 
@@ -109,7 +110,7 @@ async def make_async_request(session, method, url, headers, data, cookies, origi
     cookie_dict = {k.strip(): v.strip() for k, v in (item.split('=', 1) for item in cookies.split(';') if '=' in item)}
     headers = dict(headers)
     headers.pop('Connection', None)
-    max_retries = 10  # More retries for reliability
+    max_retries = 10  # Retry limit for transient network errors
 
     for retry in range(max_retries):
         await global_wait_event.wait()
@@ -315,7 +316,6 @@ async def async_run_scan(filepath: Path, verbose=False, num_days=None):
     logger.info(f"Scanning {filepath} with {len(city_pairs)} origins, {sum(len(d) for d in city_pairs.values())} routes, {len(days)} days")
 
     # Build flight graph
-    # TEMP: at this point the flight graph gets built successfully
     flight_graph = await build_flight_graph(city_pairs, start_date, days, ready_up_time, verbose=verbose)
     flight_json = graph_to_json(flight_graph)
 

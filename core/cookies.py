@@ -12,6 +12,15 @@ SAVE_FILE = project_paths.CURL_REQUEST_FILE
 
 
 def parse_curl_command(curl_command):
+    """
+    Parses a cURL command string to extract HTTP method, URL, headers, data, and cookies.
+
+    Args:
+        curl_command (str): The raw cURL command string.
+
+    Returns:
+        tuple: (method, url, headers, data, cookies)
+    """
     curl_command = curl_command.replace('\\\n', ' ')
     tokens = shlex.split(curl_command)
     method = 'GET'
@@ -50,6 +59,15 @@ def parse_curl_command(curl_command):
 
 
 def extract_cookies(headers):
+    """
+    Extracts cookies from a headers dictionary and removes the 'cookie' key.
+
+    Args:
+        headers (dict): Dictionary of HTTP headers.
+
+    Returns:
+        dict: Extracted cookies as key-value pairs.
+    """
     cookies_str = headers.get('cookie', '')
     cookies = {}
     if cookies_str:
@@ -84,8 +102,8 @@ def get_curl_command_input():
         with open(curl_path, "r", encoding="utf-8") as f:
             return f.read()
     else:
-        logger.info("No curl_input.txt found, falling back to manual entry")
-        print("Paste your cURL command. Type 'END' on a new line to finish.")
+        logger.info("No curl_input.txt found, initiating manual entry mode.")
+        print("Please paste your cURL command below. Type 'END' on a new line to finish:")
         curl_lines = []
         while True:
             line = input()

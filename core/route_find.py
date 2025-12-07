@@ -10,9 +10,13 @@ distances_json_file = DATA_DIR / "distances.json"
 
 def get_graph(file_path):
     """
-    Function to load a pickled graph from a file.
-    :param file_path: The path to the pickled graph file.
-    :return: The loaded graph object.
+    Deserializes the flight graph from a pickle file.
+
+    Args:
+        file_path (Path): Path to the pickle file.
+
+    Returns:
+        nx.DiGraph: The loaded flight graph.
     """
     with open(file_path, 'rb') as f:
         graph = pickle.load(f)
@@ -32,18 +36,20 @@ def parse_time(time_str):
 def find_round_trip_routes(graph, cities, min_time_gap_hours, max_time_gap_hours, flex_km=0, transfer_speed_kmh=50,
                            distances_file=distances_json_file):
     """
-    Find all valid round-trip routes in the graph starting and ending in one of the start_cities,
-    ensuring a minimum and maximum time gap between flights.
-    This function uses find_one_way_routes by setting start_cities as end_cities.
+    Identifies valid round-trip itineraries based on time constraints.
+    Wraps find_one_way_routes by setting start_cities as end_cities.
 
-    :param graph: The flight graph (directed).
-    :param cities: List of start cities (nodes).
-    :param min_time_gap_hours: Minimum time gap in hours between consecutive flights.
-    :param max_time_gap_hours: Maximum time gap in hours between consecutive flights.
-    :param flex_km: Flexibility range in kilometers for clustering nearby cities.
-    :param transfer_speed_kmh: Speed (in km/h) at which transfers between cities can be made.
-    :param distances_file: Path to the distances.json file.
-    :return: A list of valid round-trip routes.
+    Args:
+        graph (nx.DiGraph): The flight graph.
+        cities (list): List of allowed start/end cities.
+        min_time_gap_hours (float): Minimum layover/stay duration.
+        max_time_gap_hours (float): Maximum layover/stay duration.
+        flex_km (int): Radius for city clustering.
+        transfer_speed_kmh (int): Assumed ground transport speed.
+        distances_file (Path): Path to distance matrix JSON.
+
+    Returns:
+        list: Valid round-trip routes.
     """
     # Set start_cities as end_cities for round-trip routes
     return find_one_way_routes(
@@ -112,7 +118,7 @@ def find_one_way_routes(graph, start_cities, end_cities, min_time_gap_hours, max
         if city_a not in distances or city_b not in distances[city_a]:
             return timedelta(0)  # Default to zero if no distance is found
         distance = distances[city_a][city_b]
-        # adding 1 hours since you can't start the self transport immediately after touchdown and also have to be 1 hour early at the airport at least
+        # Add 1 hour buffer for airport procedures + transport time
         transfer_time_hours = (distance / transfer_speed_kmh) + 1
         return timedelta(hours=transfer_time_hours)
 
@@ -297,8 +303,7 @@ def print_routes(routes, output_mode="full", city_data=None, country_data=None, 
             # Initial city and departure time
             city_sequence = [f"{route[0][0]} ({start_time.strftime('%a %d/%m %H:%M')})"]
 
-            # Iterate over the flight segments
-            # Innerhalb der Schleife über die Flugsegmente
+            # Iterate over flight segments
             for i in range(len(route)):
                 flight = route[i]
                 departure_city = flight[0]
@@ -308,7 +313,7 @@ def print_routes(routes, output_mode="full", city_data=None, country_data=None, 
                 flight_duration = arrival_time - departure_time
                 flight_time_total += flight_duration
 
-                try:  # on older versions of the preferences.json might have inconsistencies with the city names
+                try:  # Handle potential inconsistencies in legacy preferences data
                     # Update departure city data
                     unique_cities.add(departure_city)
                     unique_countries.add(city_data[departure_city]['country'])

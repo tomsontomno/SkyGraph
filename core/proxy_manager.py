@@ -7,7 +7,18 @@ logger = logging.getLogger(__name__)
 
 
 class ProxyManager:
+    """
+    Manages a pool of proxies with rotation, cooldowns, and failure tracking.
+    """
     def __init__(self, proxy_file: str = None, window_size: int = 5, requests_per_proxy: int = 5):
+        """
+        Initializes the ProxyManager.
+
+        Args:
+            proxy_file (str, optional): Path to the proxy list file. Defaults to "proxies.txt".
+            window_size (int): Number of proxies to keep in the active rotation window.
+            requests_per_proxy (int): Number of requests before rotating to the next proxy.
+        """
         self.proxy_file = proxy_file or path_in_current("proxies.txt")
         self.proxies = self.load_proxies(self.proxy_file)
         self.window_size = window_size
@@ -15,8 +26,7 @@ class ProxyManager:
         self.failed_proxies = set()
         self.current_window = []
         self.current_proxy_index = 0
-        logger.info(f"ProxyManager initialized with {len(self.proxies)} proxies "
-                    f"(window_size={self.window_size}, requests_per_proxy={self.requests_per_proxy})")
+        logger.info(f"ProxyManager initialized. Pool size: {len(self.proxies)}, Window: {self.window_size}, Rotation: {self.requests_per_proxy}")
         self.load_initial_window()
 
     def load_proxies(self, file_path: str) -> List[Dict[str, Optional[datetime]]]:
