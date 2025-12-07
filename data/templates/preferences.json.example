@@ -1,0 +1,24 @@
+{
+  "city": {
+    "VIE": {
+      "country": "Austria",
+      "visited": false
+    },
+    "LCA": {
+      "country": "Cyprus",
+      "visited": false
+    }
+  },
+  "country": {
+    "Austria": {
+      "visited": false,
+      "eu_member": true,
+      "visa_needed": false
+    },
+    "Cyprus": {
+      "visited": false,
+      "eu_member": true,
+      "visa_needed": false
+    }
+  }
+}
