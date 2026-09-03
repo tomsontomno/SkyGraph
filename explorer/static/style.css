@@ -28,27 +28,38 @@ html, body {
 body { display: flex; flex-direction: column; }
 
 .topbar {
-  display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap;
-  padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap;
+  padding: 9px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
 }
-.brand { font-weight: 600; letter-spacing: .2px; }
-.brand span { color: var(--muted); font-weight: 400; }
+.brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.brand b { font-weight: 650; letter-spacing: -.1px; font-size: 15px; }
+.brand span {
+  color: var(--muted); font-size: 12px; padding-left: 8px;
+  border-left: 1px solid var(--line); white-space: nowrap;
+}
+.controls { display: flex; align-items: center; gap: 10px 16px; margin-left: auto; min-width: 0; }
+
+/* status strip under the header: the numbers of the current hop */
 .totals {
-  margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums;
-  display: flex; flex-wrap: wrap; gap: 4px 6px;
+  flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 7px 14px; background: var(--bg); border-bottom: 1px solid var(--line);
+  color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .totals .pill {
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
-  padding: 1px 8px; white-space: nowrap; font-size: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
+  padding: 2px 9px; white-space: nowrap; font-size: 12px;
 }
-.totals b { color: var(--text); }
+.totals b { color: var(--text); font-weight: 600; }
 .map-toggle { flex: 0 0 auto; }
 .panel-toggle { display: none; }
 .panel-toggle.active { color: var(--text); border-color: var(--accent); }
 
-.archive-bar { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; }
-.archive-bar input[type="range"] { width: 210px; accent-color: var(--accent); }
+.archive-bar {
+  display: flex; align-items: center; gap: 14px; flex: 0 0 auto;
+  padding: 7px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+}
+.archive-bar input[type="range"] { flex: 1 1 260px; max-width: 420px; accent-color: var(--accent); }
 .archive-label { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
 .archive-bar .check { color: var(--muted); }
 
@@ -195,12 +206,18 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
 @media (max-width: 900px) {
   body { font-size: 14px; }
   .topbar { gap: 8px 10px; padding: 8px 10px; }
-  .brand { font-size: 13px; }
+  .brand b { font-size: 14px; }
   .brand span { display: none; }
-  .panel-toggle { display: inline-block; padding: 4px 10px; font-size: 12px; }
-  .totals { margin-left: 0; flex-basis: 100%; order: 5; }
-  .archive-bar { flex-basis: 100%; order: 4; flex-wrap: wrap; gap: 6px 10px; }
-  .archive-bar input[type="range"] { width: 100%; height: 26px; }
+  /* the scan name is the longest label on the page, so it gets its own full-width row */
+  .controls { gap: 8px 10px; flex-wrap: wrap; width: 100%; margin-left: 0; }
+  .scan-field { flex: 1 1 100%; order: 3; }
+  .scan-field select { flex: 1 1 auto; }
+  #scan-select { max-width: none; }
+  .map-toggle { order: 1; }
+  .panel-toggle { display: inline-block; padding: 5px 10px; font-size: 12px; order: 2; margin-left: auto; }
+  .totals { padding: 6px 10px; }
+  .archive-bar { flex-wrap: wrap; gap: 8px 12px; padding: 8px 10px; }
+  .archive-bar input[type="range"] { flex-basis: 100%; max-width: none; height: 26px; }
   .archive-label { flex-basis: 100%; }
 
   .layout { flex-direction: column; min-height: 0; }

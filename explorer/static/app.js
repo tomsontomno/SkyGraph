@@ -128,8 +128,24 @@
     return state.settings.mode === 'rt' ? entry.shareRoundTrip : entry.shareOneWay;
   }
 
+  /* In round-trip mode a city you cannot get home from is not an option, so it is dropped rather
+   * than drawn as a zero-sized dot.  In one-way mode every reachable city stays. */
+  function visibleEntries() {
+    if (state.settings.mode !== 'rt') return state.shares.cities;
+    return state.shares.cities.filter(function (entry) { return entry.roundTrip > 0; });
+  }
+
+  /* The flights of one city, in round-trip mode only those you can still come home from. */
+  function visibleHops(entry) {
+    var hops = entry.flights;
+    if (state.settings.mode === 'rt') {
+      hops = hops.filter(function (hop) { return hop.counts.roundTrip > 0; });
+    }
+    return hops.slice().sort(function (a, b) { return a.flight.dep - b.flight.dep; });
+  }
+
   function sortedEntries() {
-    return state.shares.cities.slice().sort(function (a, b) {
+    return visibleEntries().slice().sort(function (a, b) {
       var d = weightOf(b) - weightOf(a);
       return d !== 0 ? d : (cityName(a.city) < cityName(b.city) ? -1 : 1);
     });
@@ -208,7 +224,7 @@
       'ab <b>' + escapeHtml(cityName(currentCityIndex())) + '</b>',
       '<b>' + fmtInt(totals.totalOneWay) + '</b> One-way',
       '<b>' + fmtInt(totals.totalRoundTrip) + '</b> Rundreisen',
-      '<b>' + totals.cities.length + '</b> Städte',
+      '<b>' + visibleEntries().length + '</b> Städte',
       'noch <b>' + remaining + '</b> Flüge'
     ];
     if (!state.counter.exact) pills.push('<b>Zahlen gerundet</b>');
@@ -219,7 +235,7 @@
 
   function renderMap(refit) {
     var center = cityRecord(currentCityIndex());
-    var points = state.shares.cities.map(function (entry) {
+    var points = visibleEntries().map(function (entry) {
       var record = cityRecord(entry.city);
       return {
         key: entry.city, name: record.name, lat: record.lat, lon: record.lon,
@@ -241,12 +257,18 @@
     var entries = sortedEntries();
     els.cityList.textContent = '';
     if (!entries.length) {
-      els.detailHint.textContent = 'Von hier führt kein Flug weiter – zurückgehen oder Einstellungen lockern.';
+      var dead = state.settings.mode === 'rt' && state.shares.cities.length > 0;
+      els.detailHint.textContent = dead
+        ? 'Von hier kommst du nicht mehr nach Hause. ' + state.shares.cities.length +
+          ' Städte wären noch erreichbar, aber ohne Rückweg – auf One-way umschalten, um sie zu sehen.'
+        : 'Von hier führt kein Flug weiter – zurückgehen oder Einstellungen lockern.';
       return;
     }
+    var hidden = state.shares.cities.length - entries.length;
     els.detailHint.textContent = 'Größe = Anteil der Vollrouten über diesen Hop (' +
       (state.settings.mode === 'rt' ? 'Rundreise' : 'One-way') + ')' +
-      (state.required.length ? ', gezählt werden nur Routen über ' + state.required.join(', ') : '') + '.';
+      (state.required.length ? ', gezählt werden nur Routen über ' + state.required.join(', ') : '') + '.' +
+      (hidden > 0 ? ' ' + hidden + ' Städte ohne Rückweg sind ausgeblendet.' : '');
     entries.forEach(function (entry) {
       var li = document.createElement('li');
       li.className = (state.settings.highlightNew && isNewCountry(entry.city) ? 'is-new' : '') +
@@ -271,7 +293,7 @@
     els.detailHint.hidden = true;
     els.flightWrap.hidden = false;
     els.flightList.textContent = '';
-    entry.flights.slice().sort(function (a, b) { return a.flight.dep - b.flight.dep; }).forEach(function (hop) {
+    visibleHops(entry).forEach(function (hop) {
       var li = document.createElement('li');
       var count = state.settings.mode === 'rt' ? hop.counts.roundTrip : hop.counts.oneWay;
       var total = state.settings.mode === 'rt' ? state.shares.totalRoundTrip : state.shares.totalOneWay;
@@ -348,7 +370,7 @@
     var newLabel = record.countryNew === null ? 'unbekannt' : (record.countryNew ? 'ja' : 'nein');
     els.tooltip.innerHTML =
       '<h3>' + escapeHtml(record.name) + '</h3><dl>' +
-      '<dt>Flüge</dt><dd>' + entry.flights.length + '</dd>' +
+      '<dt>Flüge</dt><dd>' + visibleHops(entry).length + '</dd>' +
       '<dt>Anteil Rundreise</dt><dd>' + fmtPct(entry.shareRoundTrip) + '</dd>' +
       '<dt>Anteil One-way</dt><dd>' + fmtPct(entry.shareOneWay) + '</dd>' +
       '<dt>offene Rückwege</dt><dd>' + fmtInt(entry.roundTrip) + '</dd>' +

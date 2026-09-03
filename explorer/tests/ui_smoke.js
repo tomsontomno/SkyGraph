@@ -73,9 +73,10 @@ const ELEMENT_IDS = [
   'panel-toggle', 'settings-panel', 'sidebar'
 ];
 
+// mirrors the defaults in index.html; explorer/tests/test_ui.py checks that they stay in sync
 const INITIAL_VALUES = {
-  'min-gap': '1', 'max-gap': '24', 'max-flights': '', 'daily-cap': '3',
-  'cap-mode': 'calendar', 'map-kind': 'auto', 'start-radius': '0', 'return-radius': '0',
+  'min-gap': '1', 'max-gap': '18', 'max-flights': '', 'daily-cap': '3',
+  'cap-mode': 'rolling24', 'map-kind': 'auto', 'start-radius': '180', 'return-radius': '180',
   'archive-day': '0', 'archive-length': '4'
 };
 
@@ -199,7 +200,8 @@ async function main() {
     cities: cityListNames(),
     shares: cityListShares(),
     backDisabled: registry.get('back-btn').disabled,
-    svgNodes: registry.get('map').children.length
+    svgNodes: registry.get('map').children.length,
+    hint: registry.get('detail-hint')._text
     };
   };
 
@@ -247,18 +249,33 @@ async function main() {
   out.steps.push(record('after-svg-map'));
 
   // a radius around the start must widen the set of start cities
-  registry.get('start-radius').value = '200';
+  registry.get('start-radius').value = '400';
   registry.get('start-radius').dispatch('input');
   await settle();
   await settle();
   out.steps.push(record('after-radius'));
+
+  // one way must reveal the cities that round trip hides because there is no way home
+  registry.get('start-radius').value = String(INITIAL_VALUES['start-radius']);
+  registry.get('start-radius').dispatch('input');
+  await settle();
+  modeRadios[0].checked = false;
+  modeRadios[1].checked = true;
+  modeRadios[1].dispatch('change');
+  for (let i = 0; i < 4; i++) await settle();
+  out.steps.push(record('one-way'));
+  modeRadios[1].checked = false;
+  modeRadios[0].checked = true;
+  modeRadios[0].dispatch('change');
+  for (let i = 0; i < 4; i++) await settle();
+  out.steps.push(record('round-trip'));
 
   out.archiveOffered = registry.get('scan-select').options
     .some((o) => o.value === '__archive__');
   out.archiveBarHidden = registry.get('archive-bar').hidden;
 
   // Pflichtstädte: add one via the + button, then remove it again via its chip
-  registry.get('start-radius').value = '0';
+  registry.get('start-radius').value = String(INITIAL_VALUES['start-radius']);
   registry.get('start-radius').dispatch('input');
   await settle();
   const before = record('before-required');

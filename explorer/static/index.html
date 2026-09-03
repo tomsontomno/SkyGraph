@@ -11,33 +11,37 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">SkyGraph <span>Routen-Explorer</span></div>
-  <button type="button" class="mini panel-toggle" id="panel-toggle">Einstellungen</button>
-  <label class="inline">Scan
-    <select id="scan-select"></select>
-  </label>
-  <label class="inline map-toggle">Karte
-    <select id="map-kind">
-      <option value="auto">OpenStreetMap</option>
-      <option value="svg">Offline (SVG)</option>
-    </select>
-  </label>
-  <div class="archive-bar" id="archive-bar" hidden>
-    <input type="range" id="archive-day" min="0" max="0" step="1" value="0">
-    <span class="archive-label" id="archive-label">–</span>
-    <label class="inline">Tage
-      <select id="archive-length">
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4" selected>4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
+  <div class="brand"><b>SkyGraph</b><span>Routen-Explorer</span></div>
+  <div class="controls">
+    <label class="inline scan-field">Scan
+      <select id="scan-select"></select>
+    </label>
+    <label class="inline map-toggle">Karte
+      <select id="map-kind">
+        <option value="auto">OpenStreetMap</option>
+        <option value="svg">Offline (SVG)</option>
       </select>
     </label>
-    <label class="inline check"><input type="checkbox" id="archive-original"> Originalcode</label>
+    <button type="button" class="mini panel-toggle" id="panel-toggle">Einstellungen</button>
   </div>
-  <div class="totals" id="totals">–</div>
 </header>
+
+<div class="archive-bar" id="archive-bar" hidden>
+  <input type="range" id="archive-day" min="0" max="0" step="1" value="0">
+  <span class="archive-label" id="archive-label">–</span>
+  <label class="inline">Tage
+    <select id="archive-length">
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4" selected>4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+  </label>
+  <label class="inline check"><input type="checkbox" id="archive-original"> Originalcode</label>
+</div>
+
+<div class="totals" id="totals">–</div>
 
 <main class="layout">
   <aside class="sidebar" id="sidebar">
@@ -52,21 +56,21 @@
       </div>
       <div class="field row">
         <label class="wide">Startstadt<select id="start-select"></select></label>
-        <label class="narrow">Radius km<input type="number" id="start-radius" value="0" min="0" step="25"></label>
+        <label class="narrow">Radius km<input type="number" id="start-radius" value="180" min="0" step="20"></label>
       </div>
       <div class="resolved" id="start-resolved"></div>
       <div class="field row">
         <label class="wide">Rückkehr-Stadt
           <select id="return-select"></select>
         </label>
-        <label class="narrow">Radius km<input type="number" id="return-radius" value="0" min="0" step="25"></label>
+        <label class="narrow">Radius km<input type="number" id="return-radius" value="180" min="0" step="20"></label>
       </div>
       <div class="resolved" id="return-resolved">
         <button type="button" class="mini" id="return-reset">= Startstadt</button>
       </div>
       <div class="field row">
         <label>min. Gap (h)<input type="number" id="min-gap" value="1" min="0" step="0.5"></label>
-        <label>max. Gap (h)<input type="number" id="max-gap" value="24" min="0.5" step="0.5"></label>
+        <label>max. Gap (h)<input type="number" id="max-gap" value="18" min="0.5" step="0.5"></label>
       </div>
       <div class="field row">
         <label>Flug-Limit<input type="number" id="max-flights" min="1" step="1" placeholder="kein Limit"></label>
@@ -75,8 +79,8 @@
       <div class="field">
         <label>Cap-Modus
           <select id="cap-mode">
-            <option value="calendar" selected>calendar (Kalendertag)</option>
-            <option value="rolling24">rolling24 (24-h-Fenster)</option>
+            <option value="rolling24" selected>rolling24 (24-h-Fenster)</option>
+            <option value="calendar">calendar (Kalendertag)</option>
             <option value="none">ohne Cap</option>
           </select>
         </label>
