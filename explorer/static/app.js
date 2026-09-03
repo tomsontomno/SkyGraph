@@ -171,6 +171,26 @@
     return hops.slice().sort(function (a, b) { return a.flight.dep - b.flight.dep; });
   }
 
+  /* "4 bis 9 Flüge" - the shortest and longest completing route through this hop, with its price. */
+  function depthText(entry) {
+    if (entry.minFlights === undefined) return 'keine vollständige Route';
+    if (entry.minFlights === entry.maxFlights) {
+      return entry.minFlights + (entry.minFlights === 1 ? ' Flug' : ' Flüge')
+        + ' · ' + fmtPrice(entry.minFlights);
+    }
+    return entry.minFlights + ' bis ' + entry.maxFlights + ' Flüge · '
+      + fmtPrice(entry.minFlights) + ' bis ' + fmtPrice(entry.maxFlights);
+  }
+
+  function hopDepthText(hop) {
+    if (!hop.depth) return 'keine vollständige Route';
+    if (hop.depth.min === hop.depth.max) {
+      return hop.depth.min + (hop.depth.min === 1 ? ' Flug' : ' Flüge') + ' · ' + fmtPrice(hop.depth.min);
+    }
+    return hop.depth.min + ' bis ' + hop.depth.max + ' Flüge · '
+      + fmtPrice(hop.depth.min) + ' bis ' + fmtPrice(hop.depth.max);
+  }
+
   function sortedEntries() {
     return visibleEntries().slice().sort(function (a, b) {
       var d = weightOf(b) - weightOf(a);
@@ -300,9 +320,13 @@
                      (state.selectedCity === entry.city ? ' selected' : '');
       var weight = weightOf(entry);
       li.innerHTML =
-        '<span class="name">' + escapeHtml(cityName(entry.city)) + '</span>' +
-        '<span class="bar"><i style="width:' + (Math.min(1, weight) * 100).toFixed(1) + '%"></i></span>' +
-        '<span class="share">' + fmtPct(weight) + '</span>';
+        '<span class="row1">' +
+          '<span class="name">' + escapeHtml(cityName(entry.city)) + '</span>' +
+          '<span class="bar"><i style="width:' + (Math.min(1, weight) * 100).toFixed(1) + '%"></i></span>' +
+          '<span class="share">' + fmtPct(weight) + '</span>' +
+        '</span>' +
+        '<span class="row2">' + escapeHtml(depthText(entry)) + ' · ' +
+          fmtInt(state.settings.mode === 'rt' ? entry.roundTrip : entry.oneWay) + ' Routen</span>';
       li.addEventListener('click', function () { selectCity(entry.city); });
       li.addEventListener('mousemove', function (ev) { showTooltip(entry, ev.clientX, ev.clientY); });
       li.addEventListener('mouseleave', hideTooltip);
@@ -313,18 +337,27 @@
   function renderFlightList(cityIndex) {
     var entry = state.shares.cities.filter(function (c) { return c.city === cityIndex; })[0];
     if (!entry) { showCityList(); return; }
-    els.detailTitle.textContent = 'Flüge nach ' + cityName(cityIndex);
+    var roundTrip = state.settings.mode === 'rt';
+    var total = roundTrip ? state.shares.totalRoundTrip : state.shares.totalOneWay;
+    var cityCount = roundTrip ? entry.roundTrip : entry.oneWay;
+    els.detailTitle.innerHTML = 'Flüge nach <b>' + escapeHtml(cityName(cityIndex)) + '</b>' +
+      ' · <b>' + fmtPct(total ? cityCount / total : 0) + '</b> aller Optionen von hier' +
+      '<span class="sub">' + escapeHtml(depthText(entry)) + '</span>';
     els.cityList.hidden = true;
     els.detailHint.hidden = true;
     els.flightWrap.hidden = false;
     els.flightList.textContent = '';
     visibleHops(entry).forEach(function (hop) {
       var li = document.createElement('li');
-      var count = state.settings.mode === 'rt' ? hop.counts.roundTrip : hop.counts.oneWay;
-      var total = state.settings.mode === 'rt' ? state.shares.totalRoundTrip : state.shares.totalOneWay;
+      var count = roundTrip ? hop.counts.roundTrip : hop.counts.oneWay;
       li.innerHTML =
-        '<span class="time">' + escapeHtml(hop.flight.depLabel) + ' → ' + escapeHtml(hop.flight.arrLabel) + '</span>' +
-        '<span class="meta">' + fmtInt(count) + ' Routen · ' + fmtPct(total ? count / total : 0) + '</span>';
+        '<span class="row1">' +
+          '<span class="time">' + escapeHtml(hop.flight.depLabel) + ' → ' +
+            escapeHtml(hop.flight.arrLabel) + '</span>' +
+          '<span class="share">' + fmtPct(cityCount ? count / cityCount : 0) + '</span>' +
+        '</span>' +
+        '<span class="row2">' + escapeHtml(hopDepthText(hop)) + ' · ' + fmtInt(count) + ' Routen · ' +
+          fmtPct(total ? count / total : 0) + ' von allen</span>';
       li.addEventListener('click', function () { pushHop(hop.flight.index); });
       els.flightList.appendChild(li);
     });

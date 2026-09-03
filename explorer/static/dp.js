@@ -190,6 +190,9 @@
     this.settings = settings;
     this.succ = successors(net, settings.minGapHours, settings.maxGapHours);
     this.memo = new Map();
+    this.depthMemo = new Map();
+    // whether depthRange asks for a way home or accepts ending anywhere
+    this.depthRoundTrip = settings.mode !== 'ow';
     this.exact = true;                       // false once a count exceeds 2^53 - 1
     this.maxFlights = (settings.maxFlights === undefined) ? null : settings.maxFlights;
 
@@ -283,9 +286,53 @@
       if (nextState === null) continue;
       var mask = baseMask | this.bitOf(flight.dest);
       if (!path.length) mask |= this.bitOf(flight.origin);   // the route's own start counts as visited
-      out.push({ flight: flight, counts: this.value(candidates[i], nextState, remaining, mask) });
+      var depth = this.depthRange(candidates[i], nextState, remaining, mask);
+      out.push({
+        flight: flight,
+        counts: this.value(candidates[i], nextState, remaining, mask),
+        // total flights of the shortest and longest completing route through this hop
+        depth: depth === null ? null : { min: path.length + depth.min, max: path.length + depth.max }
+      });
     }
     return out;
+  };
+
+  /* How many more flights does a completing route need from here, at least and at most?
+   *
+   * Counts `index` itself, so a hop that already closes the trip returns {min: 1, max: 1}.  Returns
+   * null when nothing below this flight can complete - the same subtree the counter values at zero.
+   * `max` is finite because the graph is acyclic and the scan window is finite. */
+  RouteCounter.prototype.depthRange = function (index, capState, remaining, mask) {
+    mask = mask || 0;
+    var key = index + '|' + capState.join(',') + '|' + (remaining === null ? '*' : remaining) + '|' + mask;
+    var hit = this.depthMemo.get(key);
+    if (hit !== undefined) return hit;
+    var result = null;
+    if (!this.required.length || (mask | this.reach[index]) === this.fullMask) {
+      var flight = this.net.flights[index];
+      if (mask === this.fullMask &&
+          (!this.depthRoundTrip || this.settings.returnCities.has(flight.dest))) {
+        result = { min: 1, max: 1 };
+      }
+      if (remaining === null || remaining > 0) {
+        var next = remaining === null ? null : remaining - 1;
+        var succ = this.succ[index];
+        for (var i = 0; i < succ.length; i++) {
+          var target = this.net.flights[succ[i]];
+          var state = capAdvance(capState, target, this.settings.dailyCap, this.settings.capMode);
+          if (state === null) continue;
+          var sub = this.depthRange(succ[i], state, next, mask | this.bitOf(target.dest));
+          if (sub === null) continue;
+          if (result === null) result = { min: 1 + sub.min, max: 1 + sub.max };
+          else {
+            result.min = Math.min(result.min, 1 + sub.min);
+            result.max = Math.max(result.max, 1 + sub.max);
+          }
+        }
+      }
+    }
+    this.depthMemo.set(key, result);
+    return result;
   };
 
   /* Is there at least one route at all?  Same rules as `value`, but it stops at the first hit
@@ -359,6 +406,10 @@
       entry.flights.push(h);
       entry.oneWay += h.counts.oneWay;
       entry.roundTrip += h.counts.roundTrip;
+      if (h.depth) {
+        entry.minFlights = entry.minFlights === undefined ? h.depth.min : Math.min(entry.minFlights, h.depth.min);
+        entry.maxFlights = entry.maxFlights === undefined ? h.depth.max : Math.max(entry.maxFlights, h.depth.max);
+      }
     });
     grouped.forEach(function (entry) {
       entry.shareOneWay = totalOw ? entry.oneWay / totalOw : 0;

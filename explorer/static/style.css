@@ -58,9 +58,9 @@ body { display: flex; flex-direction: column; overflow: hidden; }
 .archive-label { color: var(--text); font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
 .archive-bar .check { color: var(--muted); }
 
+/* rides along in the archive strip, pushed to the right - it is context, not a control */
 .totals {
-  flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px;
-  padding: 6px 14px; background: var(--bg); border-bottom: 1px solid var(--line);
+  flex: 0 1 auto; display: flex; flex-wrap: wrap; gap: 5px; margin-left: auto;
   color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .totals .pill {
@@ -141,13 +141,16 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
 .resolved .mini { margin-left: 6px; }
 
 .hint { color: var(--muted); font-size: 11.5px; margin-bottom: 6px; line-height: 1.4; }
-.detail-title { color: var(--text); font-size: 12px; margin-bottom: 6px; font-weight: 600; }
+.detail-title { color: var(--text); font-size: 12px; margin-bottom: 8px; }
+.detail-title .sub { display: block; color: var(--muted); font-size: 10.5px; margin-top: 2px; }
 
 .city-list, .flight-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
 .city-list li, .flight-list li {
-  padding: 7px 8px; border-radius: 6px; cursor: pointer;
-  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 1px;
 }
+.city-list .row1, .flight-list .row1 { display: flex; align-items: center; gap: 8px; }
+.city-list .row2, .flight-list .row2 { color: var(--muted); font-size: 10.5px; line-height: 1.3; }
 .city-list li:hover, .flight-list li:hover { background: var(--panel-2); }
 .city-list li.is-new .name { color: var(--new); }
 .city-list li.is-required .name { color: var(--danger); font-weight: 600; }
@@ -159,7 +162,8 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
 .city-list .bar i { display: block; height: 100%; background: var(--accent); }
 .city-list li.is-new .bar i { background: var(--new); }
 .flight-list .time { font-variant-numeric: tabular-nums; }
-.flight-list .meta { color: var(--muted); font-size: 11.5px; margin-left: auto; white-space: nowrap; }
+.flight-list .row1 .time { flex: 1 1 auto; }
+.flight-list .row1 .share { margin-left: auto; }
 #flight-list-wrap { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 
 .map-note {
@@ -219,9 +223,9 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
   #scan-select { max-width: none; }
 
   .archive-bar { padding: 7px 10px; gap: 8px 12px; }
+  .totals { margin-left: 0; flex-basis: 100%; }
   .archive-bar input[type="range"] { flex-basis: 100%; max-width: none; height: 24px; }
   .archive-label { flex-basis: 100%; }
-  .totals { padding: 6px 10px; }
 
   .layout { flex-direction: column; }
   .map-wrap { order: 1; flex: 0 0 auto; height: 44vh; min-height: 200px; }

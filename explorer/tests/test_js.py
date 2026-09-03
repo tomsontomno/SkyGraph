@@ -16,7 +16,9 @@ from typing import Optional
 
 from explorer import build as build_mod, coords
 from explorer.dp import Flight, FlightNetwork, RouteCounter, Settings
+from explorer.dp import parse_label
 from explorer.tests import fixtures
+from simulate import booking_cap, datasets, route_find_fixed
 
 sys.setrecursionlimit(20000)
 
@@ -121,6 +123,47 @@ def test_js_matches_python_across_midnight():
                                          build_mod.PROJECT_ROOT / 'midnight')
     for case in CASES:
         _compare(bundle, [], case, 'midnight')
+
+
+def test_js_depth_range_matches_enumeration():
+    """The "x bis y Flüge" per hop must be the real shortest and longest completing route."""
+    if node_binary() is None:
+        return
+    bundle = build_mod.bundle_from_graph(fixtures.real_graph('pkl'), 'test-pkl', 'test',
+                                         build_mod.PROJECT_ROOT / 'data' / 'current' / 'graph.pkl')
+    network = network_from_bundle(bundle)
+
+    # enumerate every round trip of at most five flights and group by its first flight
+    routes = booking_cap.filter_daily_cap(
+        route_find_fixed.find_one_way_routes(
+            fixtures.real_graph('pkl'), ['Dortmund'], {'Dortmund'}, 1, 24, flex_km=0,
+            distances_file=datasets.DISTANCES_FILE, max_flights=5), 3, 'calendar')
+    lengths: dict = {}
+    for route in routes:
+        first = route[0]
+        key = (first[0], first[1], first[2][0], first[2][1])
+        lengths.setdefault(key, []).append(len(route))
+
+    js = run_node(bundle, {'startCities': ['Dortmund'], 'returnCities': ['Dortmund'], 'minGapHours': 1,
+                           'maxGapHours': 24, 'maxFlights': 5, 'dailyCap': 3, 'capMode': 'calendar',
+                           'mode': 'rt'}, [])
+    checked = 0
+    for entry in js['cities']:
+        for index in entry['flights']:
+            flight = network.flights[index]
+            key = (flight.origin, flight.dest, flight.dep_label, flight.arr_label)
+            seen = [lengths[k] for k in lengths
+                    if k[0] == key[0] and k[1] == key[1]
+                    and parse_label(k[2]) == key[2] and parse_label(k[3]) == key[3]]
+            if not seen:
+                continue
+            flat = seen[0]
+            depth = js['depths'].get(str(index))
+            assert depth is not None, f"no range reported for flight {index}"
+            assert depth['min'] == min(flat) and depth['max'] == max(flat), \
+                f"{key}: js says {depth}, enumeration says {min(flat)}..{max(flat)}"
+            checked += 1
+    assert checked >= 3, f"only {checked} hops compared - the fixture is not exercising the range"
 
 
 def test_js_radius_matches_python():

@@ -225,11 +225,13 @@ async function main() {
     if (!flights.length) { out.errors.push('no flights listed for the first city'); break; }
     const row = flights[0].innerHTML;
     const times = /<span class="time">([^<]*) → ([^<]*)<\/span>/.exec(row);
-    const title = /^Flüge nach (.*)$/.exec(registry.get('detail-title')._text);
+    const title = /Flüge nach <b>([^<]*)<\/b>/.exec(registry.get('detail-title').innerHTML);
     if (!times || !title) { out.errors.push('flight row or title not readable: ' + row); break; }
     out.chosen.push({ city: title[1], depLabel: times[1], arrLabel: times[2] });
     out.steps.push({ label: 'flights-hop' + hop, count: flights.length,
-                     first: row.replace(/<[^>]+>/g, '') });
+                     first: row.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+                     title: registry.get('detail-title').innerHTML.replace(/<[^>]+>/g, ' ')
+                       .replace(/\s+/g, ' ').trim() });
     flights[0].dispatch('click');
     await settle();
     await settle();

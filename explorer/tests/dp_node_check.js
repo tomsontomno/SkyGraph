@@ -41,7 +41,8 @@ function main() {
     maxGapHours: s.maxGapHours,
     maxFlights: (s.maxFlights === undefined || s.maxFlights === null) ? null : s.maxFlights,
     dailyCap: s.dailyCap,
-    capMode: s.capMode
+    capMode: s.capMode,
+    mode: s.mode || 'rt'
   };
 
   const counter = new DP.RouteCounter(net, settings);
@@ -53,6 +54,10 @@ function main() {
           .map((hit) => ({ city: bundle.cities[hit.index].name, km: hit.distance })),
     assembled: { scan: bundle.scan, days: bundle.days, flights: bundle.flights.length,
                  edges: bundle.stats.edges },
+    depths: shares.hops.reduce((acc, hop) => {
+      acc[hop.flight.index] = hop.depth;
+      return acc;
+    }, {}),
     oneWay: shares.totalOneWay,
     roundTrip: shares.totalRoundTrip,
     exact: counter.exact,
