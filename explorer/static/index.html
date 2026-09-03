@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyGraph Routen-Explorer</title>
+<link rel="stylesheet" href="style.css">
+<!-- Leaflet is optional: if the CDN is unreachable the page falls back to its own SVG map. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">SkyGraph <span>Routen-Explorer</span></div>
+  <button type="button" class="mini panel-toggle" id="panel-toggle">Einstellungen</button>
+  <label class="inline">Scan
+    <select id="scan-select"></select>
+  </label>
+  <label class="inline map-toggle">Karte
+    <select id="map-kind">
+      <option value="auto">OpenStreetMap</option>
+      <option value="svg">Offline (SVG)</option>
+    </select>
+  </label>
+  <div class="archive-bar" id="archive-bar" hidden>
+    <input type="range" id="archive-day" min="0" max="0" step="1" value="0">
+    <span class="archive-label" id="archive-label">–</span>
+    <label class="inline">Tage
+      <select id="archive-length">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </label>
+    <label class="inline check"><input type="checkbox" id="archive-original"> Originalcode</label>
+  </div>
+  <div class="totals" id="totals">–</div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar" id="sidebar">
+    <section class="panel" id="settings-panel">
+      <h2>Einstellungen</h2>
+      <div class="field">
+        <span class="label">Modus</span>
+        <div class="segmented" id="mode-group">
+          <label><input type="radio" name="mode" value="rt" checked> Rundreise</label>
+          <label><input type="radio" name="mode" value="ow"> One-way</label>
+        </div>
+      </div>
+      <div class="field row">
+        <label class="wide">Startstadt<select id="start-select"></select></label>
+        <label class="narrow">Radius km<input type="number" id="start-radius" value="0" min="0" step="25"></label>
+      </div>
+      <div class="resolved" id="start-resolved"></div>
+      <div class="field row">
+        <label class="wide">Rückkehr-Stadt
+          <select id="return-select"></select>
+        </label>
+        <label class="narrow">Radius km<input type="number" id="return-radius" value="0" min="0" step="25"></label>
+      </div>
+      <div class="resolved" id="return-resolved">
+        <button type="button" class="mini" id="return-reset">= Startstadt</button>
+      </div>
+      <div class="field row">
+        <label>min. Gap (h)<input type="number" id="min-gap" value="1" min="0" step="0.5"></label>
+        <label>max. Gap (h)<input type="number" id="max-gap" value="24" min="0.5" step="0.5"></label>
+      </div>
+      <div class="field row">
+        <label>Flug-Limit<input type="number" id="max-flights" min="1" step="1" placeholder="kein Limit"></label>
+        <label>Tages-Cap<input type="number" id="daily-cap" value="3" min="1" step="1"></label>
+      </div>
+      <div class="field">
+        <label>Cap-Modus
+          <select id="cap-mode">
+            <option value="calendar" selected>calendar (Kalendertag)</option>
+            <option value="rolling24">rolling24 (24-h-Fenster)</option>
+            <option value="none">ohne Cap</option>
+          </select>
+        </label>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" id="highlight-new" checked> neue Länder hervorheben</label>
+      </div>
+      <div class="field">
+        <span class="label">Pflichtstädte – die Route muss über alle davon führen</span>
+        <div class="add-row">
+          <select id="required-select"></select>
+          <button type="button" class="mini plus" id="required-add" title="Stadt hinzufügen">+</button>
+        </div>
+        <div class="chips" id="required-chips"></div>
+      </div>
+    </section>
+
+    <section class="panel grow">
+      <h2 id="detail-title">Nächster Hop</h2>
+      <div id="detail-hint" class="hint">Stadt auf der Karte oder in der Liste anklicken.</div>
+      <ul class="city-list" id="city-list"></ul>
+      <div id="flight-list-wrap" hidden>
+        <button type="button" class="mini back" id="flight-back">← zurück zur Städteliste</button>
+        <ul class="flight-list" id="flight-list"></ul>
+      </div>
+    </section>
+  </aside>
+
+  <section class="map-wrap">
+    <div id="map" class="map"></div>
+    <div class="map-note" id="map-note"></div>
+    <div class="tooltip" id="tooltip" hidden></div>
+    <div class="busy" id="busy" hidden>rechnet …</div>
+  </section>
+</main>
+
+<footer class="breadcrumb-bar">
+  <div class="crumbs">
+    <span class="crumb-label">Route</span>
+    <span id="breadcrumb">Dortmund</span>
+  </div>
+  <div class="actions">
+    <button type="button" id="back-btn" disabled>← Zurück</button>
+    <button type="button" id="reset-btn" disabled>Zurücksetzen</button>
+  </div>
+</footer>
+
+<script src="dp.js"></script>
+<script src="map.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

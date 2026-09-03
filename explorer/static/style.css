@@ -1,0 +1,234 @@
+:root {
+  --bg: #0f1418;
+  --panel: #171e25;
+  --panel-2: #1e2731;
+  --line: #2b3743;
+  --text: #e6edf3;
+  --muted: #97a5b4;
+  --accent: #5b8def;
+  --accent-2: #f5a524;
+  --new: #2fbf71;
+  --danger: #e5484d;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body { display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap;
+  padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.brand { font-weight: 600; letter-spacing: .2px; }
+.brand span { color: var(--muted); font-weight: 400; }
+.totals {
+  margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums;
+  display: flex; flex-wrap: wrap; gap: 4px 6px;
+}
+.totals .pill {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1px 8px; white-space: nowrap; font-size: 12px;
+}
+.totals b { color: var(--text); }
+.map-toggle { flex: 0 0 auto; }
+.panel-toggle { display: none; }
+.panel-toggle.active { color: var(--text); border-color: var(--accent); }
+
+.archive-bar { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; }
+.archive-bar input[type="range"] { width: 210px; accent-color: var(--accent); }
+.archive-label { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
+.archive-bar .check { color: var(--muted); }
+
+.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+
+select, input[type="number"] {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; font: inherit;
+}
+select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.layout { flex: 1 1 auto; display: flex; min-height: 0; }
+
+.sidebar {
+  width: 330px; flex: 0 0 330px; display: flex; flex-direction: column;
+  border-right: 1px solid var(--line); background: var(--panel); min-height: 0;
+}
+.panel { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.panel.grow { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border-bottom: none; }
+.panel h2 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+
+.field { margin-bottom: 8px; }
+.field.row { display: flex; gap: 8px; }
+.field.row label { flex: 1; }
+.field.row label.wide { flex: 2 1 0; min-width: 0; }
+.field.row label.narrow { flex: 0 0 78px; }
+.add-row { display: flex; gap: 6px; margin-top: 3px; }
+.add-row select { flex: 1 1 auto; min-width: 0; }
+.mini.plus { flex: 0 0 28px; font-size: 15px; line-height: 1; color: var(--text); }
+.mini.plus:hover { border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px;
+  background: #24405f; border: 1px solid var(--accent); border-radius: 11px; font-size: 11px;
+}
+.chip.unreachable { background: #4a2530; border-color: var(--danger); }
+.chip button {
+  background: none; border: none; color: var(--muted); cursor: pointer; font: inherit;
+  padding: 0 1px; line-height: 1;
+}
+.chip button:hover { color: var(--danger); }
+.chips .empty { color: var(--muted); font-size: 11px; }
+
+.resolved { color: var(--muted); font-size: 11px; margin: -4px 0 8px; line-height: 1.4; }
+.resolved b { color: var(--text); font-weight: 500; }
+.resolved .mini { margin-left: 6px; }
+.field label, .field .label { display: block; color: var(--muted); font-size: 12px; }
+.field label input[type="number"], .field label select { width: 100%; margin-top: 3px; }
+.field .check { display: flex; align-items: center; gap: 6px; color: var(--text); }
+.segmented { display: flex; gap: 10px; margin-top: 3px; }
+.segmented label { display: inline-flex; align-items: center; gap: 5px; color: var(--text); }
+#return-cities { width: 100%; margin-top: 4px; }
+
+.mini {
+  background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+  border-radius: 4px; padding: 1px 6px; font: inherit; font-size: 11px; cursor: pointer;
+}
+.mini:hover { color: var(--text); }
+.mini.back { margin-bottom: 6px; }
+
+.hint { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+
+.city-list, .flight-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
+.city-list li, .flight-list li {
+  padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.city-list li:hover, .flight-list li:hover { background: var(--panel-2); }
+.city-list li.is-new .name { color: var(--new); }
+.city-list li.selected, .flight-list li.selected { background: #24405f; }
+.city-list .name { flex: 1 1 auto; }
+.city-list .share, .flight-list .share { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+.city-list .bar {
+  flex: 0 0 60px; height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden;
+}
+.city-list .bar i { display: block; height: 100%; background: var(--accent); }
+.city-list li.is-new .bar i { background: var(--new); }
+.flight-list .time { font-variant-numeric: tabular-nums; }
+.flight-list .meta { color: var(--muted); font-size: 12px; margin-left: auto; }
+#flight-list-wrap { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+
+.map-wrap { flex: 1 1 auto; position: relative; min-width: 0; }
+.map { position: absolute; inset: 0; background: #0b0f13; }
+.map-svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.map-svg.dragging { cursor: grabbing; }
+
+.grid-line { stroke: #1c2630; stroke-width: 1; }
+.grid-label { fill: #3d4a57; font-size: 9px; }
+.bg-dot { fill: #55636f; opacity: .5; }
+.hop-line { stroke: var(--accent); opacity: .5; }
+.hop-line.selected { stroke: var(--accent-2); opacity: .95; }
+.city-dot { fill: rgba(91, 141, 239, .4); stroke: var(--accent); stroke-width: 1.8; cursor: pointer; }
+.city-dot.is-new { fill: rgba(47, 191, 113, .38); stroke: var(--new); }
+.city-dot.selected { stroke: var(--accent-2); stroke-width: 3; }
+.center-dot { fill: rgba(229, 72, 77, .8); stroke: var(--danger); stroke-width: 3; }
+.city-label { fill: #c6d3df; font-size: 11px; paint-order: stroke; stroke: #0b0f13; stroke-width: 3px; }
+.city-label.center { fill: #ffd9da; font-weight: 600; }
+.city-label.selected { fill: var(--accent-2); }
+
+.map-note {
+  position: absolute; left: 10px; bottom: 10px; z-index: 500;
+  background: rgba(15, 20, 24, .82); border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 8px; color: var(--muted); font-size: 11px; pointer-events: none;
+}
+.tooltip {
+  position: fixed; z-index: 1000; pointer-events: none;
+  background: rgba(12, 17, 21, .96); border: 1px solid var(--line); border-radius: 7px;
+  padding: 8px 10px; min-width: 190px; box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+}
+.tooltip h3 { margin: 0 0 5px; font-size: 13px; }
+.tooltip dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 2px 10px; }
+.tooltip dt { color: var(--muted); }
+.tooltip dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.tooltip .new-yes { color: var(--new); }
+
+.busy {
+  position: absolute; top: 10px; right: 10px; z-index: 600;
+  background: rgba(15, 20, 24, .9); border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 10px; color: var(--accent-2); font-size: 12px;
+}
+
+.breadcrumb-bar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px; background: var(--panel); border-top: 1px solid var(--line);
+}
+.crumbs { flex: 1 1 auto; min-width: 0; }
+.crumb-label { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .8px; margin-right: 8px; }
+#breadcrumb { font-variant-numeric: tabular-nums; }
+.actions { display: flex; gap: 8px; }
+.actions button {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 5px; padding: 4px 10px; font: inherit; cursor: pointer;
+}
+.actions button:disabled { opacity: .45; cursor: default; }
+.actions button:not(:disabled):hover { border-color: var(--accent); }
+
+.error { color: var(--danger); padding: 10px 12px; }
+
+/* ---------------------------------------------------------------- phones and small tablets
+   One column: map on top at a fixed share of the screen, the settings collapsed behind a button,
+   the city list below and scrollable.  Controls grow so they can be hit with a thumb. */
+@media (max-width: 900px) {
+  body { font-size: 14px; }
+  .topbar { gap: 8px 10px; padding: 8px 10px; }
+  .brand { font-size: 13px; }
+  .brand span { display: none; }
+  .panel-toggle { display: inline-block; padding: 4px 10px; font-size: 12px; }
+  .totals { margin-left: 0; flex-basis: 100%; order: 5; }
+  .archive-bar { flex-basis: 100%; order: 4; flex-wrap: wrap; gap: 6px 10px; }
+  .archive-bar input[type="range"] { width: 100%; height: 26px; }
+  .archive-label { flex-basis: 100%; }
+
+  .layout { flex-direction: column; min-height: 0; }
+  .map-wrap { order: -1; flex: 0 0 auto; height: 42vh; min-height: 220px; }
+  .sidebar {
+    width: 100%; flex: 1 1 auto; border-right: none; border-top: 1px solid var(--line);
+    min-height: 0;
+  }
+  /* the settings block is hidden until the button opens it, the city list stays visible */
+  #settings-panel { display: none; }
+  #settings-panel.open { display: block; max-height: 60vh; overflow-y: auto; }
+
+  select, input[type="number"] { padding: 6px 8px; font-size: 15px; }
+  .city-list li, .flight-list li { padding: 9px 8px; }
+  .chip { padding: 4px 9px; font-size: 12px; }
+  .mini.plus { flex-basis: 36px; padding: 4px; }
+
+  .breadcrumb-bar { flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+  .crumbs { flex-basis: 100%; max-height: 4.4em; overflow-y: auto; }
+  #breadcrumb { font-size: 12px; word-break: break-word; }
+  .actions { flex: 1 1 auto; }
+  .actions button { flex: 1 1 auto; padding: 8px 10px; }
+  .tooltip { max-width: min(80vw, 260px); }
+  .map-note { font-size: 10px; max-width: 60vw; }
+}
+
+@media (max-width: 480px) {
+  .map-wrap { height: 38vh; }
+  .field.row { flex-wrap: wrap; }
+  .field.row label.wide, .field.row label.narrow { flex: 1 1 100%; }
+  .totals .pill { font-size: 11px; }
+}
+
+/* pointer-less devices: no hover tooltips, so make the tap targets bigger */
+@media (hover: none) {
+  .city-dot { stroke-width: 2.4; }
+}

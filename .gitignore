@@ -42,3 +42,13 @@ misc/
 # OS-specific
 ehthumbs.db
 Icon?
+
+# Simulation (simulate/): local venv and run outputs
+.venv-sim/
+data/sim/
+
+# Explorer (explorer/): built browser bundles
+data/explorer/
+
+# Explorer: exportierte statische Seite
+data/site/
