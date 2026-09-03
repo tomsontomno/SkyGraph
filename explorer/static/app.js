@@ -16,9 +16,10 @@
     index: null, bundle: null, net: null, counter: null, shares: null,
     path: [], selectedCity: null, map: null, mapKind: null, settings: null,
     departureCities: new Set(), resolved: null, required: [], requiredCountries: [],
-    tab: 'hop', tabBeforePick: 'milestones', pickMode: false,
+    tab: 'hop', tabBeforePick: 'milestones', pickMode: false, plan: null,
     manifest: null, dayCache: new Map(), archiveToken: 0,
-    allStarts: [], feasibleStarts: null, scanToken: 0, daysPreloaded: false
+    allStarts: [], feasibleStarts: null, scanToken: 0, daysPreloaded: false,
+    windowStart: null, scanKey: null, planKey: null
   };
 
   // ---------------------------------------------------------------- helpers
@@ -74,6 +75,24 @@
   function countries() { return state.bundle.countries || []; }
 
   function requirementCount() { return state.required.length + state.requiredCountries.length; }
+
+  /* Everything the day scan depends on.  The window itself is deliberately absent: moving the
+   * slider must not restart the scan. */
+  function scanKey() {
+    return [state.bundle.scan.replace(/^arch-[\d-]+/, 'arch'), state.required.join('|'),
+            state.requiredCountries.join('|'), state.settings.minGapHours, state.settings.maxGapHours,
+            state.settings.dailyCap, state.settings.capMode, state.settings.maxFlights,
+            state.settings.mode, windowLength(),
+            Array.from(state.settings.startCities).sort().join(','),
+            Array.from(state.settings.returnCities).sort().join(',')].join('/');
+  }
+
+  /* Everything the plan depends on; when it changes the old proposal is stale. */
+  function planKey() {
+    return [state.bundle.scan, state.required.join('|'), state.requiredCountries.join('|'),
+            state.settings.minGapHours, state.settings.maxGapHours, state.settings.dailyCap,
+            state.settings.capMode, state.settings.maxFlights].join('/');
+  }
 
   function countryByName(name) {
     return countries().filter(function (c) { return c.name === name; })[0] || null;
@@ -191,12 +210,19 @@
         state.counter = new DP.RouteCounter(state.net, state.settings);
         state.path = legalPrefix(state.counter, state.path);
         state.shares = state.counter.cityShares(state.path);
+        if (state.plan && state.planKey !== planKey()) { state.plan = null; els.planOut.textContent = ''; }
+        state.planKey = planKey();
         if (state.selectedCity !== null &&
             !state.shares.cities.some(function (c) { return c.city === state.selectedCity; })) {
           state.selectedCity = null;
         }
         render(refit);
-        if (state.manifest && els.scanSelect.value === ARCHIVE_SCAN) preloadDays();
+        // only rescan when something that decides feasibility changed, otherwise every render
+        // would restart the scan and the scan's own reload would restart it again
+        if (state.manifest && els.scanSelect.value === ARCHIVE_SCAN && scanKey() !== state.scanKey) {
+          state.scanKey = scanKey();
+          preloadDays();
+        }
       } catch (err) {
         els.mapNote.textContent = 'Fehler: ' + err.message;
       } finally {
@@ -326,6 +352,82 @@
     });
   }
 
+  /* Greedy set cover over the chosen milestones: as few round trips as possible, each one a real
+   * route in the current window.  Runs on click, not on every keystroke - it costs seconds. */
+  function runPlanner() {
+    var milestones = state.requiredCountries.map(function (name) {
+      var country = countryByName(name);
+      return { key: name, label: countryLabel(name), cities: country ? country.cities : [] };
+    }).concat(state.required.map(function (name) {
+      var index = state.bundle.cities.findIndex(function (c) { return c.name === name; });
+      return { key: name, label: name, cities: index === -1 ? [] : [index] };
+    }));
+    if (!milestones.length) {
+      els.planOut.innerHTML = '<div class="missing">Erst Meilensteine wählen.</div>';
+      return;
+    }
+    els.planBtn.disabled = true;
+    els.planBtn.textContent = 'plant …';
+    window.setTimeout(function () {
+      try {
+        var plan = DP.planTrips(state.net, state.settings, milestones, 6);
+        state.plan = plan;
+        renderPlan(plan, milestones);
+      } catch (err) {
+        els.planOut.innerHTML = '<div class="missing">Planung fehlgeschlagen: ' +
+          escapeHtml(err.message) + '</div>';
+      } finally {
+        els.planBtn.disabled = false;
+        els.planBtn.textContent = 'Reisen planen';
+      }
+    }, 20);
+  }
+
+  function renderPlan(plan, milestones) {
+    var labelOf = {};
+    milestones.forEach(function (m) { labelOf[m.key] = m.label; });
+    els.planOut.textContent = '';
+    if (!plan.trips.length) {
+      els.planOut.innerHTML = '<div class="missing">In diesem Zeitfenster ist <b>keiner</b> deiner ' +
+        'Meilensteine als Rundreise erreichbar. Anderes Fenster wählen oder max. Gap erhöhen.</div>';
+      return;
+    }
+    plan.trips.forEach(function (trip, i) {
+      var flights = trip.route.map(function (index) { return state.net.flights[index]; });
+      var chain = [cityName(flights[0].origin)].concat(flights.map(function (f) {
+        return cityName(f.dest);
+      })).join(' → ');
+      var node = document.createElement('div');
+      node.className = 'trip';
+      node.innerHTML =
+        '<div class="head"><span class="no">Reise ' + (i + 1) + '</span>' +
+        '<span>' + trip.route.length + ' Flüge</span>' +
+        '<span class="cost">' + fmtPrice(trip.route.length) + '</span></div>' +
+        '<div class="covers">' + escapeHtml(trip.covers.map(function (k) {
+          return labelOf[k] || k;
+        }).join(' · ')) + '</div>' +
+        '<div class="chain">' + escapeHtml(chain) + '</div>';
+      node.addEventListener('click', function () { showTrip(trip.route); });
+      els.planOut.appendChild(node);
+    });
+    if (plan.unreachable.length) {
+      var missing = document.createElement('div');
+      missing.className = 'missing';
+      missing.innerHTML = 'In diesem Fenster nicht erreichbar: <b>' +
+        escapeHtml(plan.unreachable.map(function (k) { return labelOf[k] || k; }).join(', ')) + '</b>';
+      els.planOut.appendChild(missing);
+    }
+  }
+
+  /* Show a planned trip whole: the route becomes the current path, the map draws every leg. */
+  function showTrip(route) {
+    setPickMode(false);
+    state.path = route.slice();
+    state.selectedCity = null;
+    showTab('hop');
+    recompute(true);
+  }
+
   function render(refit) {
     renderRequiredChips();
     renderMilestoneResults();
@@ -375,6 +477,17 @@
     }).join(' ');
   }
 
+  /* The legs flown so far, ready for the map: from, to and the stamp shown at the stop. */
+  function routeLegs() {
+    return state.path.map(function (index) {
+      var flight = state.net.flights[index];
+      var from = cityRecord(flight.origin), to = cityRecord(flight.dest);
+      return { from: { lat: from.lat, lon: from.lon, name: from.name },
+               to: { lat: to.lat, lon: to.lon, name: to.name },
+               label: flight.depLabel + ' → ' + flight.arrLabel };
+    });
+  }
+
   function renderMap(refit) {
     var center = cityRecord(currentCityIndex());
     if (state.pickMode) {
@@ -385,7 +498,7 @@
                    weight: isRequired(index) ? 1 : 0, isNew: false, isRequired: isRequired(index),
                    selected: false, entry: null };
         }),
-        background: [], fit: refit !== false, noLines: true
+        background: [], route: routeLegs(), fit: refit !== false, noLines: true
       });
       return;
     }
@@ -404,6 +517,7 @@
       center: { name: center.name, lat: center.lat, lon: center.lon },
       points: points,
       background: state.bundle.cities,
+      route: routeLegs(),
       fit: refit !== false
     });
   }
@@ -692,28 +806,39 @@
     return state.allStarts.length ? state.allStarts : [0];
   }
 
-  function archiveWindow() {
-    var starts = usableStarts();
-    var slot = Math.min(Math.max(0, parseInt(els.archiveDay.value, 10) || 0), starts.length - 1);
-    return state.manifest.days.slice(starts[slot], starts[slot] + windowLength());
+  function startDates() {
+    return usableStarts().map(function (index) { return state.manifest.days[index].date; });
   }
 
-  function syncSlider(keepDate) {
+  /* The slider position is derived from the chosen DATE, never the other way round.  When the list
+   * of usable windows shrinks or grows the date stays put, so a finished scan cannot move the
+   * window under the user's hands. */
+  function currentSlot() {
+    var dates = startDates();
+    var slot = dates.indexOf(state.windowStart);
+    if (slot !== -1) return slot;
+    var all = state.manifest.days.map(function (day) { return day.date; });
+    var target = all.indexOf(state.windowStart);
+    var best = 0, bestDistance = Infinity;
+    dates.forEach(function (date, index) {
+      var distance = Math.abs(all.indexOf(date) - target);
+      if (distance < bestDistance) { bestDistance = distance; best = index; }
+    });
+    return best;
+  }
+
+  function archiveWindow() {
     var starts = usableStarts();
-    els.archiveDay.max = String(Math.max(0, starts.length - 1));
-    if (keepDate) {
-      var wanted = starts.map(function (i) { return state.manifest.days[i].date; }).indexOf(keepDate);
-      if (wanted === -1) {                       // the day dropped out: take the nearest one that stayed
-        var target = state.manifest.days.map(function (d) { return d.date; }).indexOf(keepDate);
-        var best = 0, bestDistance = Infinity;
-        starts.forEach(function (index, slot) {
-          var distance = Math.abs(index - target);
-          if (distance < bestDistance) { bestDistance = distance; best = slot; }
-        });
-        wanted = best;
-      }
-      els.archiveDay.value = String(wanted);
-    }
+    var index = starts[Math.min(currentSlot(), starts.length - 1)];
+    return state.manifest.days.slice(index, index + windowLength());
+  }
+
+  function syncSlider() {
+    var dates = startDates();
+    els.archiveDay.max = String(Math.max(0, dates.length - 1));
+    var slot = currentSlot();
+    els.archiveDay.value = String(slot);
+    state.windowStart = dates[slot] || state.windowStart;
   }
 
   /* Walk every window and ask "is there any route at all under the current settings".  Runs in
@@ -722,7 +847,6 @@
     if (!state.manifest) return;
     var token = ++state.scanToken;
     state.allStarts = allWindowStarts();
-    state.feasibleStarts = null;
     var settings = state.settings;
     var roundTrip = settings.mode === 'rt';
     var starts = state.allStarts.slice();
@@ -748,15 +872,14 @@
       if (!found.length) {
         els.dayNote.textContent = 'kein Fenster erfüllt diese Einstellungen';
         state.feasibleStarts = null;
-        syncSlider(null);
+        syncSlider();
         return;
       }
-      var current = archiveWindow()[0].date;
+      var before = state.windowStart;
       state.feasibleStarts = found;
-      syncSlider(current);
-      if (found.indexOf(state.manifest.days.map(function (d) { return d.date; }).indexOf(current)) === -1) {
-        loadArchiveWindow();
-      }
+      syncSlider();
+      // only reload when the scan actually moved us off an infeasible window
+      if (state.windowStart !== before) loadArchiveWindow();
     }
 
     els.dayNote.textContent = 'prüfe Tage …';
@@ -877,17 +1000,23 @@
     });
     els.milestoneSearch.addEventListener('input', renderMilestoneResults);
     els.pickToggle.addEventListener('click', function () { setPickMode(!state.pickMode); });
+    els.planBtn.addEventListener('click', runPlanner);
     els.tabMilestones.addEventListener('click', function () { showTab('milestones'); });
     els.panelToggle.addEventListener('click', function () {
       showTab(state.tab === 'settings' ? 'hop' : 'settings');
     });
     els.tabHop.addEventListener('click', function () { showTab('hop'); });
     els.tabSettings.addEventListener('click', function () { showTab('settings'); });
-    els.archiveDay.addEventListener('input', loadArchiveWindow);
+    els.archiveDay.addEventListener('input', function () {
+      var dates = startDates();
+      var slot = Math.min(Math.max(0, parseInt(els.archiveDay.value, 10) || 0), dates.length - 1);
+      state.windowStart = dates[slot];
+      loadArchiveWindow();
+    });
     els.archiveLength.addEventListener('change', function () {
       state.feasibleStarts = null;
       state.allStarts = allWindowStarts();
-      syncSlider(null);
+      syncSlider();
       loadArchiveWindow();
     });
     els.archiveOriginal.addEventListener('change', loadArchiveWindow);
@@ -924,6 +1053,7 @@
       milestonesPanel: $('milestones-panel'), tabMilestones: $('tab-milestones'),
       milestoneSearch: $('milestone-search'), milestoneResults: $('milestone-results'),
       pickToggle: $('pick-toggle'), pickBanner: $('pick-banner'),
+      planBtn: $('plan-btn'), planOut: $('plan-out'),
       settingsPanel: $('settings-panel'), sidebar: $('sidebar'), hopPanel: $('hop-panel'),
       tabHop: $('tab-hop'), tabSettings: $('tab-settings'), crumbs: $('crumbs'), price: $('price'),
       dayNote: $('day-note')
@@ -968,6 +1098,7 @@
             if (sum > bestCount) { bestCount = sum; best = slot; }
           });
           els.archiveDay.value = String(best);
+          state.windowStart = state.manifest.days[state.allStarts[best]].date;
         }
         if (!index.scans.length) throw new Error('keine Bundles gebaut');
         // ?scan=<id> preselects a bundle, so two tabs can show two views side by side

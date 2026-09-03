@@ -397,6 +397,68 @@
     return false;
   };
 
+  /* One concrete round trip that satisfies every requirement, or null if none exists.
+   *
+   * Greedy walk: at each step only hops whose subtree still contains a completing round trip are
+   * considered (roundTrip > 0 already implies that), and among those the one that gets home in the
+   * fewest further flights wins.  That yields a short trip, not necessarily the shortest. */
+  RouteCounter.prototype.findRoute = function (maxHops) {
+    var limit = maxHops || 40;
+    var path = [];
+    for (var guard = 0; guard < limit; guard++) {
+      var options = this.hops(path).filter(function (hop) { return hop.counts.roundTrip > 0; });
+      if (!options.length) return null;
+      options.sort(function (a, b) {
+        var da = a.depth ? a.depth.min : Infinity, db = b.depth ? b.depth.min : Infinity;
+        return da - db || a.flight.dep - b.flight.dep;
+      });
+      path.push(options[0].flight.index);
+      var last = this.net.flights[path[path.length - 1]];
+      if (this.maskOf(path) === this.fullMask && this.settings.returnCities.has(last.dest)) return path;
+    }
+    return null;
+  };
+
+  /* Cover a set of milestones with as few round trips as possible (greedy set cover).
+   *
+   * `milestones` are {key, cities: [cityIndex]} - a city is a one-element list, a country the list
+   * of its airports.  For each trip the planner adds milestones one by one and keeps whichever
+   * still leave a feasible round trip, so every trip carries as many wishes as it can.  Greedy set
+   * cover is within ln(n) of the optimum and needs only |milestones| feasibility probes per trip.
+   *
+   * Returns {trips: [{route, covers}], unreachable: [key]} - `unreachable` are the milestones no
+   * single round trip in this network can reach at all.
+   */
+  function planTrips(net, settings, milestones, maxTrips) {
+    var remaining = milestones.slice();
+    var trips = [];
+    var limit = maxTrips || 6;
+    var withGroups = function (groups) {
+      var copy = {};
+      Object.keys(settings).forEach(function (k) { copy[k] = settings[k]; });
+      copy.requiredCities = new Set();
+      copy.requiredGroups = groups.map(function (m) { return new Set(m.cities); });
+      copy.mode = 'rt';
+      return copy;
+    };
+
+    while (remaining.length && trips.length < limit) {
+      var chosen = [];
+      var rest = [];
+      for (var i = 0; i < remaining.length; i++) {
+        var probe = chosen.concat([remaining[i]]);
+        if (new RouteCounter(net, withGroups(probe)).hasAny(true)) chosen = probe;
+        else rest.push(remaining[i]);
+      }
+      if (!chosen.length) break;                       // nothing left that any single trip can reach
+      var route = new RouteCounter(net, withGroups(chosen)).findRoute();
+      if (route === null) break;                       // feasible but not walkable: stop rather than loop
+      trips.push({ route: route, covers: chosen.map(function (m) { return m.key; }) });
+      remaining = rest;
+    }
+    return { trips: trips, unreachable: remaining.map(function (m) { return m.key; }) };
+  }
+
   RouteCounter.prototype.totals = function (path) {
     var hops = this.hops(path || []), oneWay = 0, roundTrip = 0;
     hops.forEach(function (h) { oneWay += h.counts.oneWay; roundTrip += h.counts.roundTrip; });
@@ -441,6 +503,7 @@
     successors: successors,
     capAdvance: capAdvance,
     capStateOf: capStateOf,
+    planTrips: planTrips,
     haversineKm: haversineKm,
     citiesWithin: citiesWithin,
     RouteCounter: RouteCounter

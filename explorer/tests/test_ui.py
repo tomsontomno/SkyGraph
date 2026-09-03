@@ -383,6 +383,34 @@ def test_ui_day_scan_reacts_to_new_milestones():
     assert result.get('countriesInArchive', 0) >= 0
 
 
+def test_ui_slider_does_not_jump_when_the_scan_finishes():
+    """A restrictive setting shrinks the slider, but the chosen window must stay where it was.
+
+    The slider used to be indexed by position: when the scan replaced the list of usable windows,
+    the same index pointed at a different, much earlier date, so the view jumped back to the start
+    of the archive on every change.  It is now anchored to the date.
+    """
+    from explorer import archive
+
+    if node_binary() is None or not archive.ARCHIVE_DIR.is_dir():
+        return
+    index = archive.load_days()
+    bundle = build_mod.bundle_from_graph(fixtures.real_graph('json'), 'test-json', 'test',
+                                         datasets.FLIGHT_GRAPH_JSON)
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        build_mod.build_archive_day_bundles(index, out)
+        result = _run_ui(bundle, out)
+    assert not result['errors'], result['errors']
+    stable = result.get('sliderStable')
+    assert stable, 'the smoke run never exercised the slider under a flight limit'
+    assert stable['label'] == stable['labelAfterRerender'], \
+        f"the window moved on a plain re-render: {stable['label']!r} -> {stable['labelAfterRerender']!r}"
+    assert stable['max'] == stable['maxAfterRerender'], \
+        f"the slider length changed without a reason: {stable['max']} -> {stable['maxAfterRerender']}"
+    assert 'prüfe' not in stable['note'], f"the scan restarted and never settled: {stable['note']!r}"
+
+
 def test_ui_smoke_needs_node():
     """Reports whether the UI checks above actually ran."""
     assert node_binary() is not None, 'node is not installed, so static/app.js was not executed in this run'

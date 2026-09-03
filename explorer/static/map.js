@@ -17,7 +17,7 @@
 
   var MIN_RADIUS = 5, MAX_RADIUS = 26;
   var COLOR_HOP = '#5b8def', COLOR_NEW = '#2fbf71', COLOR_SELECTED = '#f5a524',
-      COLOR_HOME = '#e5484d', COLOR_REQUIRED = '#e5484d';
+      COLOR_HOME = '#e5484d', COLOR_REQUIRED = '#e5484d', COLOR_ROUTE = '#f5a524';
 
   function radiusFor(weight) {
     var w = (typeof weight === 'number' && isFinite(weight) && weight > 0) ? Math.min(1, weight) : 0;
@@ -50,6 +50,17 @@
   LeafletMap.prototype.setData = function (data) {
     var self = this, L = window.L;
     this.layer.clearLayers();
+
+    // the route flown so far: every leg as its own line, numbered at each stop
+    (data.route || []).forEach(function (leg, i) {
+      L.polyline([[leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]], {
+        color: COLOR_ROUTE, weight: 3, opacity: .9, interactive: false
+      }).addTo(self.layer);
+      L.circleMarker([leg.to.lat, leg.to.lon], {
+        radius: 5, color: COLOR_ROUTE, weight: 2, fillColor: '#0f1418', fillOpacity: 1
+      }).addTo(self.layer).bindTooltip((i + 1) + '. ' + leg.to.name + ' · ' + leg.label,
+                                        { direction: 'top', opacity: .9 });
+    });
 
     (data.background || []).forEach(function (city) {
       L.circleMarker([city.lat, city.lon], {
@@ -91,6 +102,9 @@
 
     if (data.fit) {
       var bounds = data.points.map(function (p) { return [p.lat, p.lon]; });
+      (data.route || []).forEach(function (leg) {
+        bounds.push([leg.from.lat, leg.from.lon], [leg.to.lat, leg.to.lon]);
+      });
       if (data.center) bounds.push([data.center.lat, data.center.lon]);
       if (bounds.length === 1) this.map.setView(bounds[0], 6);
       else if (bounds.length > 1) this.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });

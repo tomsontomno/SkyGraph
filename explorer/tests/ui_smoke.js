@@ -71,7 +71,7 @@ const ELEMENT_IDS = [
   'tab-hop', 'tab-settings',
   'archive-bar', 'archive-day', 'archive-label', 'archive-length', 'archive-original',
   'required-chips', 'milestones-panel', 'tab-milestones', 'milestone-search',
-  'milestone-results', 'pick-toggle', 'pick-banner',
+  'milestone-results', 'pick-toggle', 'pick-banner', 'plan-btn', 'plan-out',
   'panel-toggle', 'settings-panel', 'sidebar', 'crumbs', 'price', 'day-note'
 ];
 
@@ -86,7 +86,8 @@ const registry = new Map();
 ELEMENT_IDS.forEach((id) => {
   const el = makeElement(id.endsWith('select') || id === 'cap-mode' || id === 'archive-length'
     ? 'select'
-    : (['panel-toggle', 'tab-hop', 'tab-settings', 'tab-milestones', 'pick-toggle'].indexOf(id) !== -1
+    : (['panel-toggle', 'tab-hop', 'tab-settings', 'tab-milestones', 'pick-toggle', 'plan-btn',
+        'plan-btn'].indexOf(id) !== -1
         ? 'button' : (id === 'milestone-search' ? 'input' : 'div')));
   el.id = id;
   if (Object.prototype.hasOwnProperty.call(INITIAL_VALUES, id)) el.value = INITIAL_VALUES[id];
@@ -376,9 +377,34 @@ async function main() {
             registry.get('day-note')._text !== out.dayNoteBefore) break;
       }
       out.dayNoteAfter = registry.get('day-note')._text;
+      out.labelAfterImpossible = registry.get('archive-label')._text;
       out.countriesInArchive = registry.get('milestone-results').children
         .filter((li) => li.innerHTML.indexOf('kind country') !== -1).length;
     }
+  }
+
+  // the user's case: a flight limit plus one hard milestone must shrink the slider and must NOT
+  // move the chosen window back to the start of the archive
+  if (archiveDir) {
+    registry.get('scan-select').value = '__archive__';
+    registry.get('scan-select').dispatch('change');
+    for (let i = 0; i < 8; i++) await settle();
+    registry.get('max-flights').value = '4';
+    registry.get('max-flights').dispatch('input');
+    for (let i = 0; i < 400; i++) {
+      await settle();
+      if (registry.get('day-note')._text.indexOf('prüfe') === -1) break;
+    }
+    const label = registry.get('archive-label')._text;
+    const max = registry.get('archive-day').max;
+    // a second identical render must not restart the scan nor move the window
+    registry.get('highlight-new').dispatch('change');
+    for (let i = 0; i < 20; i++) await settle();
+    out.sliderStable = {
+      label: label, labelAfterRerender: registry.get('archive-label')._text,
+      max: String(max), maxAfterRerender: String(registry.get('archive-day').max),
+      note: registry.get('day-note')._text
+    };
   }
 
   process.stdout.write(JSON.stringify(out));

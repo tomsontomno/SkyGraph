@@ -139,6 +139,21 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
 .mini.pick { display: block; width: 100%; padding: 7px; margin-bottom: 10px; }
 .mini.pick.active { color: var(--accent-2); border-color: var(--accent-2); }
 .chips-label { margin-bottom: 4px; }
+.mini.plan { display: block; width: 100%; padding: 8px; margin: 10px 0 8px; color: var(--text); }
+.mini.plan:hover { border-color: var(--accent); }
+.plan-out { display: flex; flex-direction: column; gap: 6px; }
+.trip {
+  border: 1px solid var(--line); border-left: 3px solid var(--accent-2); border-radius: 7px;
+  padding: 7px 9px; cursor: pointer; background: var(--panel-2);
+}
+.trip:hover { border-color: var(--accent); border-left-color: var(--accent-2); }
+.trip .head { display: flex; align-items: baseline; gap: 8px; }
+.trip .no { font-weight: 600; }
+.trip .cost { margin-left: auto; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.trip .covers { color: var(--danger); font-size: 11px; margin-top: 2px; }
+.trip .chain { color: var(--muted); font-size: 10.5px; margin-top: 3px; line-height: 1.35; }
+.plan-out .missing { color: var(--muted); font-size: 11px; padding: 4px 2px; }
+.plan-out .missing b { color: var(--danger); }
 .pick-banner {
   position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 700;
   background: rgba(15, 20, 24, .94); border: 1px solid var(--accent-2); border-radius: 8px;
