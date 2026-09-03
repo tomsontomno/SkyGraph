@@ -70,6 +70,9 @@ class Settings:
     #: Cities the route must touch.  A route counts only once all of them have been visited; the
     #: start city of the route counts as visited.  Empty means no requirement.
     required_cities: FrozenSet[str] = frozenset()
+    #: Groups of cities of which **any one** must be visited - that is how a required country works:
+    #: one group holding every airport of that country.  Each group is one requirement.
+    required_groups: Tuple[FrozenSet[str], ...] = ()
 
     def validate(self) -> None:
         if not self.start_cities:
@@ -212,10 +215,16 @@ class RouteCounter:
         self._memo: Dict[Tuple[int, tuple, Optional[int], int], Counts] = {}
         self._order = sorted(range(len(network.flights)), key=lambda i: network.flights[i].dep, reverse=True)
 
-        # required cities as a bitmask, plus which of them are still reachable from each flight
-        self.required = sorted(settings.required_cities)
-        self._bit = {city: 1 << i for i, city in enumerate(self.required)}
-        self._full = (1 << len(self.required)) - 1
+        # every requirement is a group of cities of which one must be visited; a required city is a
+        # group of size one.  A city can belong to several groups (its own and its country's).
+        self.groups = ([frozenset({city}) for city in sorted(settings.required_cities)]
+                       + [frozenset(group) for group in settings.required_groups])
+        self.required = self.groups                      # kept for the "is anything required" checks
+        self._bit: Dict[str, int] = {}
+        for position, group in enumerate(self.groups):
+            for city in group:
+                self._bit[city] = self._bit.get(city, 0) | (1 << position)
+        self._full = (1 << len(self.groups)) - 1
         self._reach = [0] * len(network.flights)
         if self.required:
             # successors always depart later, so descending departure order is a topological order

@@ -70,7 +70,8 @@ const ELEMENT_IDS = [
   'map-note', 'tooltip', 'busy', 'breadcrumb', 'back-btn', 'reset-btn', 'hop-panel',
   'tab-hop', 'tab-settings',
   'archive-bar', 'archive-day', 'archive-label', 'archive-length', 'archive-original',
-  'required-select', 'required-add', 'required-chips',
+  'required-chips', 'milestones-panel', 'tab-milestones', 'milestone-search',
+  'milestone-results', 'pick-toggle', 'pick-banner',
   'panel-toggle', 'settings-panel', 'sidebar', 'crumbs', 'price', 'day-note'
 ];
 
@@ -85,7 +86,8 @@ const registry = new Map();
 ELEMENT_IDS.forEach((id) => {
   const el = makeElement(id.endsWith('select') || id === 'cap-mode' || id === 'archive-length'
     ? 'select'
-    : (['required-add', 'panel-toggle', 'tab-hop', 'tab-settings'].indexOf(id) !== -1 ? 'button' : 'div'));
+    : (['panel-toggle', 'tab-hop', 'tab-settings', 'tab-milestones', 'pick-toggle'].indexOf(id) !== -1
+        ? 'button' : (id === 'milestone-search' ? 'input' : 'div')));
   el.id = id;
   if (Object.prototype.hasOwnProperty.call(INITIAL_VALUES, id)) el.value = INITIAL_VALUES[id];
   if (id === 'highlight-new') el.checked = true;
@@ -253,6 +255,23 @@ async function main() {
   await settle();
   out.tabsAfterSettings = { settings: registry.get('settings-panel').hidden,
                             hop: registry.get('hop-panel').hidden };
+  // the country search must find the country and adding it must swallow its cities
+  registry.get('tab-milestones').dispatch('click');
+  registry.get('milestone-search').value = 'Türk';
+  registry.get('milestone-search').dispatch('input');
+  await settle();
+  out.countryRows = registry.get('milestone-results').children
+    .map((li) => li.innerHTML.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  // pick mode must toggle without disturbing the route
+  registry.get('pick-toggle').dispatch('click');
+  await settle();
+  out.pickOn = { banner: !registry.get('pick-banner').hidden, tab: registry.get('milestones-panel').hidden };
+  registry.get('pick-toggle').dispatch('click');
+  await settle();
+  out.pickOff = { banner: !registry.get('pick-banner').hidden };
+  registry.get('milestone-search').value = '';
+  registry.get('milestone-search').dispatch('input');
+  await settle();
   registry.get('tab-hop').dispatch('click');
   await settle();
   out.steps.push(record('after-tab-switch'));
@@ -291,10 +310,14 @@ async function main() {
   await settle();
   const before = record('before-required');
   const wish = 'Abu Dhabi';
-  const option = registry.get('required-select').options.find((o) => o.value === wish);
+  registry.get('tab-milestones').dispatch('click');
+  registry.get('milestone-search').value = wish;
+  registry.get('milestone-search').dispatch('input');
+  await settle();
+  const rows = registry.get('milestone-results').children;
+  const option = rows.find((li) => li.innerHTML.indexOf('>' + wish + '<') !== -1);
   if (option) {
-    registry.get('required-select').value = wish;
-    registry.get('required-add').dispatch('click');
+    option.dispatch('click');
     for (let i = 0; i < 4; i++) await settle();
     const after = record('with-required');
     after.chips = registry.get('required-chips').children

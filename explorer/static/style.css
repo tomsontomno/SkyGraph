@@ -116,6 +116,36 @@ select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1
 .segmented { display: flex; gap: 10px; margin-top: 3px; }
 .segmented label { display: inline-flex; align-items: center; gap: 5px; color: var(--text); }
 
+.search {
+  width: 100%; background: var(--panel-2); color: var(--text); font: inherit;
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; margin-bottom: 8px;
+}
+.search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.results { list-style: none; margin: 0 0 8px; padding: 0; max-height: 34vh; overflow-y: auto; }
+.results li {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border-radius: 6px; cursor: pointer;
+}
+.results li:hover { background: var(--panel-2); }
+.results li.chosen { opacity: .45; cursor: default; }
+.results .kind {
+  flex: 0 0 auto; font-size: 9.5px; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+}
+.results .kind.country { color: var(--accent-2); border-color: var(--accent-2); }
+.results .label2 { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.results .note { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+.results .empty { color: var(--muted); cursor: default; }
+.mini.pick { display: block; width: 100%; padding: 7px; margin-bottom: 10px; }
+.mini.pick.active { color: var(--accent-2); border-color: var(--accent-2); }
+.chips-label { margin-bottom: 4px; }
+.pick-banner {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 700;
+  background: rgba(15, 20, 24, .94); border: 1px solid var(--accent-2); border-radius: 8px;
+  padding: 5px 12px; color: var(--accent-2); font-size: 12px; white-space: nowrap;
+}
+.chip.country { border-color: var(--accent-2); background: #4a3a1c; }
+
 .add-row { display: flex; gap: 6px; margin-top: 3px; }
 .add-row select { flex: 1 1 auto; min-width: 0; }
 .mini.plus { flex: 0 0 30px; font-size: 15px; line-height: 1; color: var(--text); }

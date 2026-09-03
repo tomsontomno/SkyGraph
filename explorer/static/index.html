@@ -43,13 +43,26 @@
     <div class="map-note" id="map-note"></div>
     <div class="tooltip" id="tooltip" hidden></div>
     <div class="busy" id="busy" hidden>rechnet …</div>
+    <div class="pick-banner" id="pick-banner" hidden>Städte antippen, um sie als Meilenstein zu setzen</div>
   </section>
 
   <aside class="sidebar" id="sidebar">
     <div class="tabs" role="tablist">
       <button type="button" class="tab active" id="tab-hop" role="tab">Nächster Hop</button>
+      <button type="button" class="tab" id="tab-milestones" role="tab">Meilensteine</button>
       <button type="button" class="tab" id="tab-settings" role="tab">Einstellungen</button>
     </div>
+
+    <section class="panel tabpanel" id="milestones-panel" role="tabpanel" hidden>
+      <div class="hint">Städte und Länder, über die die Route führen muss. Ein Land zählt, sobald
+        irgendein Flughafen darin angeflogen wird.</div>
+      <input type="search" id="milestone-search" class="search" placeholder="Stadt oder Land suchen …"
+             autocomplete="off">
+      <ul class="results" id="milestone-results"></ul>
+      <button type="button" class="mini pick" id="pick-toggle">Auf der Karte auswählen</button>
+      <span class="label chips-label">Gewählt</span>
+      <div class="chips" id="required-chips"></div>
+    </section>
 
     <section class="panel tabpanel" id="settings-panel" role="tabpanel" hidden>
       <div class="field">
@@ -90,14 +103,6 @@
       </div>
       <div class="field">
         <label class="check"><input type="checkbox" id="highlight-new" checked> neue Länder hervorheben</label>
-      </div>
-      <div class="field">
-        <span class="label">Pflichtstädte – die Route muss über alle davon führen</span>
-        <div class="add-row">
-          <select id="required-select"></select>
-          <button type="button" class="mini plus" id="required-add" title="Stadt hinzufügen">+</button>
-        </div>
-        <div class="chips" id="required-chips"></div>
       </div>
     </section>
 

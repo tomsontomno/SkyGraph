@@ -15,7 +15,8 @@
   var state = {
     index: null, bundle: null, net: null, counter: null, shares: null,
     path: [], selectedCity: null, map: null, mapKind: null, settings: null,
-    departureCities: new Set(), resolved: null, required: [], tab: 'hop',
+    departureCities: new Set(), resolved: null, required: [], requiredCountries: [],
+    tab: 'hop', tabBeforePick: 'milestones', pickMode: false,
     manifest: null, dayCache: new Map(), archiveToken: 0,
     allStarts: [], feasibleStarts: null, scanToken: 0, daysPreloaded: false
   };
@@ -64,7 +65,53 @@
 
   function isNewCountry(cityIndex) { return cityRecord(cityIndex).countryNew === true; }
 
-  function isRequired(cityIndex) { return state.required.indexOf(cityName(cityIndex)) !== -1; }
+  function isRequired(cityIndex) {
+    if (state.required.indexOf(cityName(cityIndex)) !== -1) return true;
+    var country = cityRecord(cityIndex).country;
+    return !!country && state.requiredCountries.indexOf(country) !== -1;
+  }
+
+  function countries() { return state.bundle.countries || []; }
+
+  function countryByName(name) {
+    return countries().filter(function (c) { return c.name === name; })[0] || null;
+  }
+
+  function countryLabel(name) {
+    var country = countryByName(name);
+    return country ? country.de : name;
+  }
+
+  /* Adding a country removes the cities it already covers - naming both would be redundant. */
+  function addRequiredCountry(name) {
+    if (state.requiredCountries.indexOf(name) !== -1) return;
+    var country = countryByName(name);
+    if (!country) return;
+    var covered = new Set(country.cities.map(cityName));
+    state.required = state.required.filter(function (city) { return !covered.has(city); });
+    state.requiredCountries = state.requiredCountries.concat([name]);
+    recompute(false);
+  }
+
+  function cityCoveredByCountry(name) {
+    var record = state.bundle.cities.filter(function (c) { return c.name === name; })[0];
+    return !!(record && record.country && state.requiredCountries.indexOf(record.country) !== -1);
+  }
+
+  function addRequiredCity(name) {
+    if (!name || state.required.indexOf(name) !== -1 || cityCoveredByCountry(name)) return;
+    state.required = state.required.concat([name]);
+    recompute(false);
+  }
+
+  function removeRequirement(kind, name) {
+    if (kind === 'country') {
+      state.requiredCountries = state.requiredCountries.filter(function (o) { return o !== name; });
+    } else {
+      state.required = state.required.filter(function (o) { return o !== name; });
+    }
+    recompute(false);
+  }
 
   function currentCityIndex() {
     if (!state.path.length) return state.settings.startCenter;
@@ -103,6 +150,11 @@
       returnCities: new Set(back.hits.map(function (h) { return h.index; })),
       requiredCities: new Set(state.required.map(function (name) { return indexOf.get(name); })
                                             .filter(function (i) { return i !== undefined; })),
+      // one group per required country: any airport in it satisfies the requirement
+      requiredGroups: state.requiredCountries.map(function (name) {
+        var country = countryByName(name);
+        return new Set(country ? country.cities : []);
+      }),
       startCenter: indexOf.get(start.center),
       minGapHours: minGap,
       maxGapHours: maxGap,
@@ -202,34 +254,79 @@
    * reach it, which is the fastest way to see that a wish is impossible from here. */
   function renderRequiredChips() {
     els.requiredChips.textContent = '';
-    if (!state.required.length) {
+    var entries = state.requiredCountries.map(function (name) { return { kind: 'country', name: name }; })
+      .concat(state.required.map(function (name) { return { kind: 'city', name: name }; }));
+    if (!entries.length) {
       var hint = document.createElement('span');
       hint.className = 'empty';
-      hint.textContent = 'keine – alle Routen zählen';
+      hint.textContent = 'nichts gewählt – alle Routen zählen';
       els.requiredChips.appendChild(hint);
       return;
     }
-    var stillPossible = state.shares
-      ? state.shares.totalRoundTrip > 0 || state.shares.totalOneWay > 0 : true;
-    state.required.forEach(function (name) {
+    var impossible = state.shares && state.shares.totalOneWay === 0 && state.shares.totalRoundTrip === 0;
+    entries.forEach(function (entry) {
       var chip = document.createElement('span');
-      chip.className = 'chip' + (stillPossible ? '' : ' unreachable');
-      chip.appendChild(document.createTextNode(name));
+      chip.className = 'chip' + (entry.kind === 'country' ? ' country' : '') +
+                       (impossible ? ' unreachable' : '');
+      chip.appendChild(document.createTextNode(
+        entry.kind === 'country' ? countryLabel(entry.name) : entry.name));
       var remove = document.createElement('button');
       remove.type = 'button';
       remove.textContent = '×';
-      remove.title = name + ' entfernen';
-      remove.addEventListener('click', function () {
-        state.required = state.required.filter(function (other) { return other !== name; });
-        recompute(false);
-      });
+      remove.title = 'entfernen';
+      remove.addEventListener('click', function () { removeRequirement(entry.kind, entry.name); });
       chip.appendChild(remove);
       els.requiredChips.appendChild(chip);
     });
   }
 
+  /* Search over countries and cities at once; countries first because they are the wider wish. */
+  function renderMilestoneResults() {
+    var query = (els.milestoneSearch.value || '').trim().toLowerCase();
+    var rows = [];
+    countries().forEach(function (country) {
+      if (query && country.de.toLowerCase().indexOf(query) === -1 &&
+          country.name.toLowerCase().indexOf(query) === -1) return;
+      rows.push({ kind: 'country', name: country.name, label: country.de,
+                  note: country.cities.length + (country.cities.length === 1 ? ' Stadt' : ' Städte') +
+                        (country.new ? ' · neu' : ''),
+                  chosen: state.requiredCountries.indexOf(country.name) !== -1 });
+    });
+    state.bundle.cities.forEach(function (city) {
+      if (query && city.name.toLowerCase().indexOf(query) === -1) return;
+      var covered = cityCoveredByCountry(city.name);
+      rows.push({ kind: 'city', name: city.name, label: city.name,
+                  note: covered ? 'durch Land abgedeckt' : (city.countryNew ? 'neues Land' : ''),
+                  chosen: covered || state.required.indexOf(city.name) !== -1 });
+    });
+    els.milestoneResults.textContent = '';
+    if (!rows.length) {
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = 'nichts gefunden';
+      els.milestoneResults.appendChild(empty);
+      return;
+    }
+    rows.slice(0, 60).forEach(function (row) {
+      var li = document.createElement('li');
+      li.className = row.chosen ? 'chosen' : '';
+      li.innerHTML = '<span class="kind ' + row.kind + '">' +
+          (row.kind === 'country' ? 'Land' : 'Stadt') + '</span>' +
+        '<span class="label2">' + escapeHtml(row.label) + '</span>' +
+        '<span class="note">' + escapeHtml(row.note) + '</span>';
+      if (!row.chosen) {
+        li.addEventListener('click', function () {
+          if (row.kind === 'country') addRequiredCountry(row.name);
+          else addRequiredCity(row.name);
+        });
+      }
+      els.milestoneResults.appendChild(li);
+    });
+  }
+
   function render(refit) {
     renderRequiredChips();
+    renderMilestoneResults();
     renderResolved();
     renderTotals();
     renderMap(refit);
@@ -278,6 +375,18 @@
 
   function renderMap(refit) {
     var center = cityRecord(currentCityIndex());
+    if (state.pickMode) {
+      state.map.setData({
+        center: { name: center.name, lat: center.lat, lon: center.lon },
+        points: state.bundle.cities.map(function (record, index) {
+          return { key: index, name: record.name, lat: record.lat, lon: record.lon,
+                   weight: isRequired(index) ? 1 : 0, isNew: false, isRequired: isRequired(index),
+                   selected: false, entry: null };
+        }),
+        background: [], fit: refit !== false, noLines: true
+      });
+      return;
+    }
     var points = visibleEntries().map(function (entry) {
       var record = cityRecord(entry.city);
       return {
@@ -476,9 +585,14 @@
   function createMap() {
     if (state.map) state.map.destroy();
     state.map = MAPS.createMap(els.map, {
-      onHover: function (point, x, y) { showTooltip(point.entry, x, y); },
+      onHover: function (point, x, y) { if (point.entry) showTooltip(point.entry, x, y); },
       onLeave: hideTooltip,
-      onSelect: function (point) { selectCity(point.key); }
+      onSelect: function (point) {
+        if (!state.pickMode) { selectCity(point.key); return; }
+        var name = cityName(point.key);
+        if (state.required.indexOf(name) !== -1) removeRequirement('city', name);
+        else if (!cityCoveredByCountry(name)) addRequiredCity(name);
+      }
     });
     state.mapKind = state.map.kind;
     // the note is only for failures; the tile attribution lives in Leaflet's own control
@@ -489,11 +603,27 @@
   function showTab(name) {
     state.tab = name;
     els.hopPanel.hidden = name !== 'hop';
+    els.milestonesPanel.hidden = name !== 'milestones';
     els.settingsPanel.hidden = name !== 'settings';
     els.tabHop.className = 'tab' + (name === 'hop' ? ' active' : '');
+    els.tabMilestones.className = 'tab' + (name === 'milestones' ? ' active' : '');
     els.tabSettings.className = 'tab' + (name === 'settings' ? ' active' : '');
     els.panelToggle.className = 'icon-btn' + (name === 'settings' ? ' active' : '');
     if (state.map) state.map.invalidate();
+  }
+
+  /* Pick milestones straight off the map.  The route is never touched, so leaving the mode puts
+   * you back exactly where you were. */
+  function setPickMode(on) {
+    if (on === state.pickMode) return;
+    if (on) state.tabBeforePick = state.tab;
+    state.pickMode = on;
+    els.pickToggle.className = 'mini pick' + (on ? ' active' : '');
+    els.pickToggle.textContent = on ? 'Fertig – zurück zur Route' : 'Auf der Karte auswählen';
+    els.pickBanner.hidden = !on;
+    hideTooltip();
+    showTab(on ? 'milestones' : state.tabBeforePick);
+    renderMap(on);
   }
 
   function populateCitySelects() {
@@ -502,7 +632,10 @@
     state.required = state.required.filter(function (name) {
       return bundle.cities.some(function (city) { return city.name === name; });
     });
-    [els.startSelect, els.returnSelect, els.requiredSelect].forEach(function (select) {
+    state.requiredCountries = state.requiredCountries.filter(function (name) {
+      return (bundle.countries || []).some(function (country) { return country.name === name; });
+    });
+    [els.startSelect, els.returnSelect].forEach(function (select) {
       select.textContent = '';
       bundle.cities.forEach(function (city, index) {
         var option = document.createElement('option');
@@ -515,14 +648,6 @@
       select.value = bundle.defaultStart;
       if (!select.value && select.options.length) select.selectedIndex = 0;
     });
-    if (els.requiredSelect.options.length) els.requiredSelect.selectedIndex = 0;
-  }
-
-  function addRequiredCity() {
-    var name = els.requiredSelect.value;
-    if (!name || state.required.indexOf(name) !== -1) return;
-    state.required = state.required.concat([name]);
-    recompute(false);
   }
 
   function copyStartToReturn() {
@@ -736,7 +861,9 @@
     Array.from(document.querySelectorAll('input[name="mode"]')).forEach(function (radio) {
       radio.addEventListener('change', function () { recompute(false); });
     });
-    els.requiredAdd.addEventListener('click', addRequiredCity);
+    els.milestoneSearch.addEventListener('input', renderMilestoneResults);
+    els.pickToggle.addEventListener('click', function () { setPickMode(!state.pickMode); });
+    els.tabMilestones.addEventListener('click', function () { showTab('milestones'); });
     els.panelToggle.addEventListener('click', function () {
       showTab(state.tab === 'settings' ? 'hop' : 'settings');
     });
@@ -779,8 +906,10 @@
       breadcrumb: $('breadcrumb'), backBtn: $('back-btn'), resetBtn: $('reset-btn'),
       archiveBar: $('archive-bar'), archiveDay: $('archive-day'), archiveLabel: $('archive-label'),
       archiveLength: $('archive-length'), archiveOriginal: $('archive-original'),
-      requiredSelect: $('required-select'), requiredAdd: $('required-add'),
       requiredChips: $('required-chips'), panelToggle: $('panel-toggle'),
+      milestonesPanel: $('milestones-panel'), tabMilestones: $('tab-milestones'),
+      milestoneSearch: $('milestone-search'), milestoneResults: $('milestone-results'),
+      pickToggle: $('pick-toggle'), pickBanner: $('pick-banner'),
       settingsPanel: $('settings-panel'), sidebar: $('sidebar'), hopPanel: $('hop-panel'),
       tabHop: $('tab-hop'), tabSettings: $('tab-settings'), crumbs: $('crumbs'), price: $('price'),
       dayNote: $('day-note')

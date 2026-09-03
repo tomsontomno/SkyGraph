@@ -245,6 +245,31 @@ def _german_date(iso_date: str) -> str:
     return f"{WEEKDAYS_DE[day.weekday()]} {day:%d.%m.%Y}"
 
 
+def test_ui_milestones_offer_countries_and_pick_mode():
+    """The Meilensteine tab must find countries by their German name and toggle the map picker."""
+    if node_binary() is None:
+        return
+    bundle = build_mod.bundle_from_graph(fixtures.real_graph('json'), 'test-json', 'test',
+                                         datasets.FLIGHT_GRAPH_JSON)
+    assert bundle['countries'], 'the bundle must carry countries'
+    turkey = [c for c in bundle['countries'] if c['de'] == 'Türkei']
+    assert turkey and len(turkey[0]['cities']) >= 2, turkey
+
+    result = _run_ui(bundle)
+    assert not result['errors'], result['errors']
+
+    rows = result['countryRows']
+    country_rows = [row for row in rows if row.startswith('Land ')]
+    assert any(row.startswith('Land Türkei') for row in country_rows), rows
+    # the row names how many airports the country covers, which is what makes it wider than a city
+    assert any('Städte' in row for row in country_rows), country_rows
+    assert all(row.startswith('Land ') or row.startswith('Stadt ') for row in rows), rows
+
+    # the picker opens and closes again without disturbing anything
+    assert result['pickOn'] == {'banner': True, 'tab': False}, result['pickOn']
+    assert result['pickOff'] == {'banner': False}, result['pickOff']
+
+
 def test_ui_archive_slider_assembles_windows():
     """Selecting the archive must build a window from the day files and react to the slider."""
     from explorer import archive

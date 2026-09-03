@@ -16,7 +16,8 @@
   'use strict';
 
   var MIN_RADIUS = 5, MAX_RADIUS = 26;
-  var COLOR_HOP = '#5b8def', COLOR_NEW = '#2fbf71', COLOR_SELECTED = '#f5a524', COLOR_HOME = '#e5484d';
+  var COLOR_HOP = '#5b8def', COLOR_NEW = '#2fbf71', COLOR_SELECTED = '#f5a524',
+      COLOR_HOME = '#e5484d', COLOR_REQUIRED = '#e5484d';
 
   function radiusFor(weight) {
     var w = (typeof weight === 'number' && isFinite(weight) && weight > 0) ? Math.min(1, weight) : 0;
@@ -38,9 +39,14 @@
     // OpenStreetMap's tile policy requires visible attribution, so it stays - but small, dim and
     // without Leaflet's own advertising, which is optional.
     this.map.attributionControl.setPrefix('');
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 12, attribution: '&copy; OSM'
-    }).addTo(this.map);
+    // Esri's dark canvas labels places in English and needs no API key, unlike CARTO; OSM's own
+    // tiles would label them in the local language.  Base and labels are two layers.
+    window.L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 12, attribution: '&copy; Esri' }).addTo(this.map);
+    window.L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 12, attribution: '' }).addTo(this.map);
     this.layer = window.L.layerGroup().addTo(this.map);
   }
 
@@ -56,7 +62,7 @@
       }).addTo(self.layer);
     });
 
-    if (data.center) {
+    if (data.center && !data.noLines) {
       data.points.forEach(function (point) {
         L.polyline([[data.center.lat, data.center.lon], [point.lat, point.lon]], {
           color: point.selected ? COLOR_SELECTED : COLOR_HOP, interactive: false,
@@ -67,7 +73,8 @@
     }
 
     data.points.forEach(function (point) {
-      var color = point.selected ? COLOR_SELECTED : (point.isNew ? COLOR_NEW : COLOR_HOP);
+      var color = point.selected ? COLOR_SELECTED
+        : (point.isRequired ? COLOR_REQUIRED : (point.isNew ? COLOR_NEW : COLOR_HOP));
       var marker = L.circleMarker([point.lat, point.lon], {
         radius: radiusFor(point.weight), color: color, weight: point.selected ? 3 : 1.6,
         fillColor: color, fillOpacity: .45

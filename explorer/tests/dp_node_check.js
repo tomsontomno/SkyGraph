@@ -37,6 +37,7 @@ function main() {
     startCities: new Set((s.startCities || []).map(resolve)),
     returnCities: new Set((s.returnCities || []).map(resolve)),
     requiredCities: new Set((s.requiredCities || []).map(resolveRequired)),
+    requiredGroups: (s.requiredGroups || []).map((group) => new Set(group.map(resolveRequired))),
     minGapHours: s.minGapHours,
     maxGapHours: s.maxGapHours,
     maxFlights: (s.maxFlights === undefined || s.maxFlights === null) ? null : s.maxFlights,

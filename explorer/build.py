@@ -93,6 +93,33 @@ def build_bundle(path: Path, preferences: Optional[dict] = None) -> dict:
     return bundle_from_graph(graph, scan_name(path, day0), scan_label(path, day0), path, preferences)
 
 
+
+def country_records(cities: Sequence[str], index_of: Dict[str, int], preferences: dict) -> List[dict]:
+    """Countries of these cities, each with its German name and the city indices it covers.
+
+    Precondition: ``index_of`` maps every name in ``cities`` to its bundle index.  Postcondition:
+    sorted by German name; cities whose country is unknown to preferences.json are left out, so a
+    country requirement can never be satisfied by a city we cannot attribute.
+    """
+    city_data, country_data = preferences['city'], preferences['country']
+    grouped: Dict[str, List[int]] = {}
+    for city in cities:
+        country = city_data.get(city, {}).get('country')
+        if country:
+            grouped.setdefault(country, []).append(index_of[city])
+    records = []
+    for country, members in grouped.items():
+        info = country_data.get(country, {})
+        records.append({
+            'name': country,
+            'de': info.get('german_name') or country,
+            'new': not info.get('visited', True),
+            'cities': sorted(members),
+        })
+    records.sort(key=lambda record: record['de'])
+    return records
+
+
 def bundle_from_graph(graph, name: str, label: str, source: Path, preferences: Optional[dict] = None) -> dict:
     """Turn a flight graph into the browser bundle.
 
@@ -133,6 +160,7 @@ def bundle_from_graph(graph, name: str, label: str, source: Path, preferences: O
 
     invisible = sum(len(attrs['flights']) - 1 for _, _, attrs in graph.edges(data=True))
     source = Path(source)
+    countries = country_records(cities, index_of, preferences)
     return {
         'scan': name,
         'label': label,
@@ -140,6 +168,7 @@ def bundle_from_graph(graph, name: str, label: str, source: Path, preferences: O
         'day0': day0.isoformat(),
         'days': [(date.fromordinal(day0.toordinal() + i)).isoformat() for i in range(n_days)],
         'cities': city_records,
+        'countries': countries,
         'flights': flight_records,
         'stats': {'cities': graph.number_of_nodes(), 'edges': graph.number_of_edges(),
                   'flights': len(network.flights), 'invisibleFlights': invisible},
@@ -298,6 +327,7 @@ def build_archive_day_bundles(index=None, out_dir: Path = BUNDLE_DIR,
     manifest = {
         'kind': 'archive-days',
         'cities': city_records,
+        'countries': country_records(cities, index_of, preferences),
         'days': days_info,
         'defaultStart': DEFAULT_START if DEFAULT_START in index_of else cities[0],
         'source': str(archive.ARCHIVE_DIR.relative_to(PROJECT_ROOT)),

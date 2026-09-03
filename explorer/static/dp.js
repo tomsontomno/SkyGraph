@@ -196,10 +196,22 @@
     this.exact = true;                       // false once a count exceeds 2^53 - 1
     this.maxFlights = (settings.maxFlights === undefined) ? null : settings.maxFlights;
 
-    // required cities as a bitmask, plus which of them are still reachable from each flight
-    this.required = Array.from(settings.requiredCities || []).sort(function (a, b) { return a - b; });
-    this.bit = new Map(this.required.map(function (city, i) { return [city, 1 << i]; }));
-    this.fullMask = (1 << this.required.length) - 1;
+    // every requirement is a group of cities of which one must be visited; a required city is a
+    // group of size one, a required country is a group holding all its airports.
+    var groups = Array.from(settings.requiredCities || [])
+      .sort(function (a, b) { return a - b; })
+      .map(function (city) { return [city]; })
+      .concat((settings.requiredGroups || []).map(function (group) { return Array.from(group); }));
+    this.groups = groups;
+    this.required = groups;                     // truthy length means "something is required"
+    this.bit = new Map();
+    var self0 = this;
+    groups.forEach(function (group, position) {
+      group.forEach(function (city) {
+        self0.bit.set(city, (self0.bit.get(city) || 0) | (1 << position));
+      });
+    });
+    this.fullMask = (1 << groups.length) - 1;
     this.reach = new Array(net.flights.length).fill(0);
     if (this.required.length) {
       // successors always depart later, so descending departure order is a topological order

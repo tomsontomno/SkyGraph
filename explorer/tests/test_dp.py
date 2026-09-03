@@ -27,9 +27,9 @@ def _enumerate(graph, mode, min_gap, max_gap, max_flights, cap, cap_mode):
     return len(booking_cap.filter_daily_cap(routes, cap, cap_mode))
 
 
-def _counter(graph, min_gap, max_gap, max_flights, cap, cap_mode, required=frozenset()):
+def _counter(graph, min_gap, max_gap, max_flights, cap, cap_mode, required=frozenset(), groups=()):
     settings = Settings(frozenset({START}), RETURN_CITIES, min_gap, max_gap, max_flights, cap, cap_mode,
-                        frozenset(required))
+                        frozenset(required), tuple(frozenset(g) for g in groups))
     return RouteCounter(FlightNetwork.from_graph(graph), settings)
 
 
@@ -123,6 +123,43 @@ def test_required_cities_match_enumeration():
             got = totals.one_way if mode == 'ow' else totals.round_trip
             assert got == expected, (f"{sorted(required)} max {max_flights} {cap_mode} {mode}: "
                                      f"DP {got} != enum {expected}")
+
+
+def test_required_country_is_any_of_its_airports():
+    """A required country counts as visited as soon as any one of its airports is on the route."""
+    graph = fixtures.real_graph('json')
+    turkey = ['Istanbul', 'Antalya', 'Dalaman']
+    assert all(city in graph for city in turkey)
+
+    country = _counter(graph, 1, 24, 5, 3, 'calendar', groups=(turkey,)).totals()
+    singles = {city: _counter(graph, 1, 24, 5, 3, 'calendar', frozenset({city})).totals().one_way
+               for city in turkey}
+    plain = _counter(graph, 1, 24, 5, 3, 'calendar').totals()
+
+    # the union is at least as permissive as any single airport, and never more than everything
+    assert country.one_way >= max(singles.values()), (country.one_way, singles)
+    assert country.one_way <= plain.one_way
+
+    # and it is exactly the routes that touch at least one of the three
+    routes = booking_cap.filter_daily_cap(
+        route_find_fixed.find_one_way_routes(graph, [START], set(graph.nodes), 1, 24, flex_km=0,
+                                             distances_file=datasets.DISTANCES_FILE, max_flights=5),
+        3, 'calendar')
+    expected = sum(1 for route in routes if _cities_of(route) & set(turkey))
+    assert country.one_way == expected, f"country DP {country.one_way} != enum {expected}"
+
+    # a country nobody flies to can never be satisfied
+    assert _counter(graph, 1, 24, 5, 3, 'calendar', groups=(['Atlantis', 'El Dorado'],)).totals().one_way == 0
+
+
+def test_required_city_and_its_country_are_the_same_requirement():
+    """Requiring a country plus one of its cities must equal requiring that city alone."""
+    graph = fixtures.real_graph('json')
+    only_city = _counter(graph, 1, 24, 5, 3, 'calendar', frozenset({'Istanbul'})).totals()
+    both = _counter(graph, 1, 24, 5, 3, 'calendar', frozenset({'Istanbul'}),
+                    groups=(['Istanbul', 'Antalya', 'Dalaman'],)).totals()
+    assert both.one_way == only_city.one_way, (both, only_city)
+    assert both.round_trip == only_city.round_trip
 
 
 def test_required_cities_only_shrink_the_result():
