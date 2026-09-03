@@ -121,6 +121,13 @@ def test_static_assets_exist():
     html = (server.STATIC_DIR / 'index.html').read_text(encoding='utf-8')
     for script in ('dp.js', 'map.js', 'app.js'):
         assert script in html, f"index.html does not load {script}"
+    css = (server.STATIC_DIR / 'style.css').read_text(encoding='utf-8')
+    # elements are toggled through the hidden attribute; a class that sets `display` would beat the
+    # user-agent rule, so the override has to exist
+    assert '[hidden] { display: none !important; }' in css, \
+        'style.css must force [hidden] to win over class-level display rules'
+    for element in ('archive-bar', 'flight-list-wrap', 'tooltip', 'busy'):
+        assert f'id="{element}"' in html and 'hidden' in html, f"{element} is toggled via hidden"
 
 
 def test_export_site_is_self_contained():

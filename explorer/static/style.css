@@ -13,6 +13,10 @@
 
 * { box-sizing: border-box; }
 
+/* Must win over any `display` a class sets, otherwise elements toggled through the `hidden`
+   attribute (archive bar, flight list, tooltip, busy badge) stay visible. */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
   margin: 0;
@@ -48,12 +52,14 @@ body { display: flex; flex-direction: column; }
 .archive-label { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
 .archive-bar .check { color: var(--muted); }
 
-.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); min-width: 0; }
 
 select, input[type="number"] {
   background: var(--panel-2); color: var(--text);
   border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; font: inherit;
+  max-width: 100%; min-width: 0;
 }
+#scan-select { max-width: min(46vw, 420px); }
 select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 .layout { flex: 1 1 auto; display: flex; min-height: 0; }
