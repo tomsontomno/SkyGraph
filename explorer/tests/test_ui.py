@@ -89,7 +89,8 @@ def test_ui_renders_and_navigates():
     bundle = build_mod.bundle_from_graph(fixtures.real_graph('pkl'), 'test-pkl', 'test', datasets.GRAPH_PKL)
     result = _run_ui(bundle)
     assert not result['errors'], f"the page reported errors: {result['errors']}"
-    assert result['mapKind'] == 'svg', 'without Leaflet the page must fall back to the SVG map'
+    assert result['mapKind'] == 'placeholder', \
+        'without Leaflet the page must show the placeholder instead of breaking'
 
     start = _step(result, 'start')
     assert start['breadcrumb'].startswith(START), start['breadcrumb']
@@ -104,7 +105,10 @@ def test_ui_renders_and_navigates():
     assert _step(result, 'after-back')['breadcrumb'] == hop1['breadcrumb'], 'Zurück must undo one hop'
     assert _step(result, 'after-reset')['breadcrumb'] == start['breadcrumb'], \
         'Zurücksetzen must return to the start'
-    assert _step(result, 'after-svg-map')['cities'] == start['cities'], 'switching the map must keep the state'
+    assert _step(result, 'after-tab-switch')['cities'] == start['cities'], \
+        'switching tabs must keep the state'
+    assert result['tabsAfterSettings'] == {'settings': False, 'hop': True}, result['tabsAfterSettings']
+    assert result['tabsAfterHop'] == {'settings': True, 'hop': False}, result['tabsAfterHop']
     assert f"Umkreis von {int(DEFAULT_RADIUS_KM)} km" in start['startResolved'], start['startResolved']
 
     # a wider radius must pull in more start cities and reach at least as many destinations
@@ -131,7 +135,22 @@ def _iso_route(graph, network: FlightNetwork, path: List[int]) -> list:
     return route
 
 
-def test_ui_breadcrumb_is_the_light_format():
+def _expected_breadcrumb(network: FlightNetwork, path: List[int]) -> str:
+    """Cities with the first departure, the layover at every stop and the final arrival."""
+    flights = [network.flights[i] for i in path]
+    parts = [f"{flights[0].origin} {flights[0].dep_label}"]
+    for i, flight in enumerate(flights):
+        if i < len(flights) - 1:
+            hours = (flights[i + 1].dep - flight.arr) / 3600
+            stamp = f"{hours:.1f}".replace('.', ',') + ' h'
+        else:
+            stamp = flight.arr_label
+        parts.append(f"{flight.dest} {stamp}")
+    return ' → '.join(parts)
+
+
+def test_ui_breadcrumb_shows_route_layovers_and_price():
+    """The route line names every stop, the waiting time there and what the trip costs."""
     if node_binary() is None:
         return
     graph = fixtures.real_graph('pkl')
@@ -140,11 +159,26 @@ def test_ui_breadcrumb_is_the_light_format():
     network = network_from_bundle(bundle)
     path = _resolve_path(network, result['chosen'], default_settings(bundle).start_cities)
     assert len(path) == 2, 'the smoke test should have taken two hops'
-    distances = datasets.load_distances()
+
     for hops in (1, 2):
-        expected = format_route_light(_iso_route(graph, network, path[:hops]), distances)
-        shown = _step(result, f'after-hop{hops}')['breadcrumb']
-        assert shown == expected, f"breadcrumb after {hops} hops:\n  UI: {shown}\n  ref: {expected}"
+        step = _step(result, f'after-hop{hops}')
+        assert step['breadcrumb'] == _expected_breadcrumb(network, path[:hops]), \
+            f"breadcrumb after {hops} hops:\n  UI: {step['breadcrumb']}\n  ref: " \
+            f"{_expected_breadcrumb(network, path[:hops])}"
+        expected_price = f"{hops * 9.99:.2f}".replace('.', ',') + ' €'
+        assert expected_price in step['price'], f"{step['price']!r} should contain {expected_price!r}"
+        assert str(hops) in step['price']
+
+    # the layover must be real waiting time, so a stop that crosses timezones still adds up
+    flights = [network.flights[i] for i in path]
+    layover_hours = (flights[1].dep - flights[0].arr) / 3600
+    assert layover_hours > 0, 'a connection cannot depart before it lands'
+    assert f"{layover_hours:.1f}".replace('.', ',') + ' h' in _step(result, 'after-hop2')['breadcrumb']
+
+    # the same route in the light format of core/route_find.py must still describe the same stops
+    light = format_route_light(_iso_route(graph, network, path), datasets.load_distances())
+    for flight in flights:
+        assert flight.dest in light
 
 
 def test_ui_totals_match_the_python_dp():
@@ -159,12 +193,13 @@ def test_ui_totals_match_the_python_dp():
     for hops, label in ((0, 'start'), (1, 'after-hop1'), (2, 'after-hop2')):
         totals = counter.totals(path[:hops])
         shares = counter.city_shares(path[:hops])
-        # the page starts in round-trip mode, where cities without a way home are hidden
-        visible = sum(1 for entry in shares.values() if entry['round_trip'] > 0)
+        # the status strip is deliberately short: only the two route counts
         text = _step(result, label)['totals']
-        numbers = [int(n.replace('.', '')) for n in re.findall(r'([\d.]+) (?:One-way|Rundreisen|Städte)', text)]
-        assert numbers == [round(totals.one_way), round(totals.round_trip), visible], \
-            f"{label}: UI shows {numbers}, DP says {[totals.one_way, totals.round_trip, visible]}"
+        numbers = [int(n.replace('.', '')) for n in re.findall(r'([\d.]+) (?:One-way|Rundreisen)', text)]
+        assert numbers == [round(totals.one_way), round(totals.round_trip)], \
+            f"{label}: UI shows {numbers}, DP says {[totals.one_way, totals.round_trip]}"
+        assert 'Städte' not in text and 'Flüge' not in text, f"status strip should stay short: {text}"
+        assert shares is not None
     tooltip = result['tooltip']
     assert 'Anteil Rundreise' in tooltip and 'Anteil One-way' in tooltip and 'offene Rückwege' in tooltip \
         and 'neues Land' in tooltip and 'Flüge' in tooltip, f"tooltip is missing fields: {tooltip}"
@@ -200,6 +235,16 @@ def test_ui_required_cities_filter_and_chip_removal():
     assert filtered[0] == round(totals.one_way), f"UI {filtered[0]} != DP {totals.one_way}"
 
 
+WEEKDAYS_DE = ('Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So')
+
+
+def _german_date(iso_date: str) -> str:
+    """'2024-09-30' -> 'Mo 30.09.2024', the same shape the page renders."""
+    from datetime import date as _date
+    day = _date.fromisoformat(iso_date)
+    return f"{WEEKDAYS_DE[day.weekday()]} {day:%d.%m.%Y}"
+
+
 def test_ui_archive_slider_assembles_windows():
     """Selecting the archive must build a window from the day files and react to the slider."""
     from explorer import archive
@@ -219,17 +264,25 @@ def test_ui_archive_slider_assembles_windows():
     assert window['barHidden'] is False, 'the date slider must appear for the archive'
     assert ' Flüge · ' in window['archiveLabel'], window['archiveLabel']
     assert window['cities'], 'the assembled window must reach cities'
-    assert window['breadcrumb'] == START
+    assert window['breadcrumb'].startswith(START), window['breadcrumb']
+    # the day scan must report how many windows survive the current settings
+    scanned = [s for s in result['steps'] if 'Fenstern mit Route' in (s.get('dayNote') or '')]
+    assert scanned, f"the day scan never finished: {[s.get('dayNote') for s in result['steps']]}"
+    numbers = re.findall(r'(\d+) von (\d+) Fenstern', scanned[-1]['dayNote'])
+    assert numbers and 0 < int(numbers[0][0]) <= int(numbers[0][1]), scanned[-1]['dayNote']
 
     # the same window through the original code must be a subset, so never more reachable cities
     original = _step(result, 'archive-original')
     assert len(original['cities']) <= len(window['cities']), \
         f"original view reaches more cities than the fix: {original['cities']} vs {window['cities']}"
 
-    # moving the slider to the first day must load a different window
+    # moving the slider to the first day must load a different window, labelled with the weekday
     first = _step(result, 'archive-first-day')
-    assert first['archiveLabel'].startswith(manifest['days'][0]['date']), first['archiveLabel']
+    assert first['archiveLabel'].startswith(_german_date(manifest['days'][0]['date'])), first['archiveLabel']
     assert first['archiveLabel'] != window['archiveLabel']
+    for step in (window, first):
+        assert re.match(r'^(Mo|Di|Mi|Do|Fr|Sa|So) \d\d\.\d\d\.\d{4} – ', step['archiveLabel']), \
+            f"the archive label must carry weekdays: {step['archiveLabel']}"
 
 
 def test_ui_defaults_are_the_agreed_ones():
@@ -247,6 +300,8 @@ def test_ui_defaults_are_the_agreed_ones():
         assert line is not None, f"{element} missing from index.html"
         assert value in line, f"{element} should default to {value}: {line.strip()}"
     assert '<option value="rolling24" selected>' in html, 'rolling24 must be the preselected cap mode'
+    assert 'id="map-kind"' not in html, 'the map picker was removed; only OpenStreetMap remains'
+    assert 'id="tab-hop"' in html and 'id="tab-settings"' in html, 'the sidebar must offer both tabs'
     assert 'id="highlight-new" checked' in html, 'new countries must be highlighted by default'
     assert 'name="mode" value="rt" checked' in html, 'round trip must be the default mode'
     # the smoke test's stub has to mirror those defaults or its results mean nothing

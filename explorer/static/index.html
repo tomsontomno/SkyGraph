@@ -2,32 +2,26 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <title>SkyGraph Routen-Explorer</title>
 <link rel="stylesheet" href="style.css">
-<!-- Leaflet is optional: if the CDN is unreachable the page falls back to its own SVG map. -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><b>SkyGraph</b><span>Routen-Explorer</span></div>
-  <div class="controls">
-    <label class="inline scan-field">Scan
-      <select id="scan-select"></select>
-    </label>
-    <label class="inline map-toggle">Karte
-      <select id="map-kind">
-        <option value="auto">OpenStreetMap</option>
-        <option value="svg">Offline (SVG)</option>
-      </select>
-    </label>
-    <button type="button" class="mini panel-toggle" id="panel-toggle">Einstellungen</button>
-  </div>
+  <div class="brand">SkyGraph</div>
+  <select id="scan-select" aria-label="Scan"></select>
+  <button type="button" class="icon-btn" id="panel-toggle" title="Einstellungen" aria-label="Einstellungen">
+    <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+      <path fill="currentColor" d="M19.14 12.94a7.9 7.9 0 0 0 .06-.94 7.9 7.9 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.62l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.4 7.4 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.67 8.86a.5.5 0 0 0 .12.62l2.03 1.58a7.9 7.9 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.62l1.92 3.32c.13.22.38.3.6.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.62l-2.03-1.58ZM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6Z"/>
+    </svg>
+  </button>
 </header>
 
 <div class="archive-bar" id="archive-bar" hidden>
-  <input type="range" id="archive-day" min="0" max="0" step="1" value="0">
+  <input type="range" id="archive-day" min="0" max="0" step="1" value="0" aria-label="Startdatum">
   <span class="archive-label" id="archive-label">–</span>
   <label class="inline">Tage
     <select id="archive-length">
@@ -39,14 +33,26 @@
     </select>
   </label>
   <label class="inline check"><input type="checkbox" id="archive-original"> Originalcode</label>
+  <span class="day-note" id="day-note"></span>
 </div>
 
 <div class="totals" id="totals">–</div>
 
 <main class="layout">
+  <section class="map-wrap">
+    <div id="map" class="map"></div>
+    <div class="map-note" id="map-note"></div>
+    <div class="tooltip" id="tooltip" hidden></div>
+    <div class="busy" id="busy" hidden>rechnet …</div>
+  </section>
+
   <aside class="sidebar" id="sidebar">
-    <section class="panel" id="settings-panel">
-      <h2>Einstellungen</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" id="tab-hop" role="tab">Nächster Hop</button>
+      <button type="button" class="tab" id="tab-settings" role="tab">Einstellungen</button>
+    </div>
+
+    <section class="panel tabpanel" id="settings-panel" role="tabpanel" hidden>
       <div class="field">
         <span class="label">Modus</span>
         <div class="segmented" id="mode-group">
@@ -60,9 +66,7 @@
       </div>
       <div class="resolved" id="start-resolved"></div>
       <div class="field row">
-        <label class="wide">Rückkehr-Stadt
-          <select id="return-select"></select>
-        </label>
+        <label class="wide">Rückkehr-Stadt<select id="return-select"></select></label>
         <label class="narrow">Radius km<input type="number" id="return-radius" value="180" min="0" step="20"></label>
       </div>
       <div class="resolved" id="return-resolved">
@@ -98,33 +102,26 @@
       </div>
     </section>
 
-    <section class="panel grow">
-      <h2 id="detail-title">Nächster Hop</h2>
+    <section class="panel tabpanel grow" id="hop-panel" role="tabpanel">
       <div id="detail-hint" class="hint">Stadt auf der Karte oder in der Liste anklicken.</div>
       <ul class="city-list" id="city-list"></ul>
       <div id="flight-list-wrap" hidden>
         <button type="button" class="mini back" id="flight-back">← zurück zur Städteliste</button>
+        <div id="detail-title" class="detail-title"></div>
         <ul class="flight-list" id="flight-list"></ul>
       </div>
     </section>
   </aside>
-
-  <section class="map-wrap">
-    <div id="map" class="map"></div>
-    <div class="map-note" id="map-note"></div>
-    <div class="tooltip" id="tooltip" hidden></div>
-    <div class="busy" id="busy" hidden>rechnet …</div>
-  </section>
 </main>
 
 <footer class="breadcrumb-bar">
-  <div class="crumbs">
-    <span class="crumb-label">Route</span>
+  <div class="crumbs" id="crumbs">
     <span id="breadcrumb">Dortmund</span>
   </div>
+  <span class="price" id="price"></span>
   <div class="actions">
     <button type="button" id="back-btn" disabled>← Zurück</button>
-    <button type="button" id="reset-btn" disabled>Zurücksetzen</button>
+    <button type="button" id="reset-btn" disabled>Reset</button>
   </div>
 </footer>
 

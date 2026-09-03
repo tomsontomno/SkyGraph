@@ -288,6 +288,55 @@
     return out;
   };
 
+  /* Is there at least one route at all?  Same rules as `value`, but it stops at the first hit
+   * instead of counting, which is what the day slider needs for 150 windows in a row. */
+  RouteCounter.prototype.hasAny = function (roundTripOnly) {
+    var self = this;
+    var seen = new Map();
+
+    function walk(index, capState, remaining, mask) {
+      var key = index + '|' + capState.join(',') + '|' + (remaining === null ? '*' : remaining) + '|' + mask;
+      var hit = seen.get(key);
+      if (hit !== undefined) return hit;
+      if (self.required.length && (mask | self.reach[index]) !== self.fullMask) {
+        seen.set(key, false);
+        return false;
+      }
+      var flight = self.net.flights[index];
+      if (mask === self.fullMask &&
+          (!roundTripOnly || self.settings.returnCities.has(flight.dest))) {
+        seen.set(key, true);
+        return true;
+      }
+      seen.set(key, false);            // guards against re-entering while this branch is open
+      var found = false;
+      if (remaining === null || remaining > 0) {
+        var next = remaining === null ? null : remaining - 1;
+        var succ = self.succ[index];
+        for (var i = 0; i < succ.length && !found; i++) {
+          var target = self.net.flights[succ[i]];
+          var state = capAdvance(capState, target, self.settings.dailyCap, self.settings.capMode);
+          if (state === null) continue;
+          found = walk(succ[i], state, next, mask | self.bitOf(target.dest));
+        }
+      }
+      seen.set(key, found);
+      return found;
+    }
+
+    var candidates = this.candidateIndices([]);
+    var remaining = this.maxFlights === null ? null : this.maxFlights - 1;
+    for (var i = 0; i < candidates.length; i++) {
+      var flight = this.net.flights[candidates[i]];
+      var state = capAdvance([], flight, this.settings.dailyCap, this.settings.capMode);
+      if (state === null) continue;
+      if (walk(candidates[i], state, remaining, this.bitOf(flight.origin) | this.bitOf(flight.dest))) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   RouteCounter.prototype.totals = function (path) {
     var hops = this.hops(path || []), oneWay = 0, roundTrip = 0;
     hops.forEach(function (h) { oneWay += h.counts.oneWay; roundTrip += h.counts.roundTrip; });

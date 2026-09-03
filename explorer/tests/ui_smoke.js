@@ -64,26 +64,28 @@ function makeElement(tag) {
 
 const ELEMENT_IDS = [
   'scan-select', 'start-select', 'start-radius', 'start-resolved', 'return-select', 'return-radius',
-  'return-resolved', 'return-reset', 'totals', 'map-kind', 'min-gap', 'max-gap', 'max-flights',
+  'return-resolved', 'return-reset', 'totals', 'min-gap', 'max-gap', 'max-flights',
   'daily-cap', 'cap-mode', 'highlight-new', 'city-list',
   'detail-title', 'detail-hint', 'flight-list-wrap', 'flight-list', 'flight-back', 'map',
-  'map-note', 'tooltip', 'busy', 'breadcrumb', 'back-btn', 'reset-btn',
+  'map-note', 'tooltip', 'busy', 'breadcrumb', 'back-btn', 'reset-btn', 'hop-panel',
+  'tab-hop', 'tab-settings',
   'archive-bar', 'archive-day', 'archive-label', 'archive-length', 'archive-original',
   'required-select', 'required-add', 'required-chips',
-  'panel-toggle', 'settings-panel', 'sidebar'
+  'panel-toggle', 'settings-panel', 'sidebar', 'crumbs', 'price', 'day-note'
 ];
 
 // mirrors the defaults in index.html; explorer/tests/test_ui.py checks that they stay in sync
 const INITIAL_VALUES = {
   'min-gap': '1', 'max-gap': '18', 'max-flights': '', 'daily-cap': '3',
-  'cap-mode': 'rolling24', 'map-kind': 'auto', 'start-radius': '180', 'return-radius': '180',
+  'cap-mode': 'rolling24', 'start-radius': '180', 'return-radius': '180',
   'archive-day': '0', 'archive-length': '4'
 };
 
 const registry = new Map();
 ELEMENT_IDS.forEach((id) => {
   const el = makeElement(id.endsWith('select') || id === 'cap-mode' || id === 'archive-length'
-    ? 'select' : (id === 'required-add' || id === 'panel-toggle' ? 'button' : 'div'));
+    ? 'select'
+    : (['required-add', 'panel-toggle', 'tab-hop', 'tab-settings'].indexOf(id) !== -1 ? 'button' : 'div'));
   el.id = id;
   if (Object.prototype.hasOwnProperty.call(INITIAL_VALUES, id)) el.value = INITIAL_VALUES[id];
   if (id === 'highlight-new') el.checked = true;
@@ -185,7 +187,7 @@ async function main() {
   const out = { steps: [], mapKind: null, tooltip: null, errors: [] };
   const note = registry.get('map-note')._text;
   if (note.indexOf('Fehler') === 0) out.errors.push(note);
-  out.mapKind = note.indexOf('Offline') === 0 ? 'svg' : 'osm';
+  out.mapKind = registry.get('map').children.length ? 'placeholder' : 'osm';
 
   const record = (label) => {
     // the page reports failures into the map note; catch them here or they stay invisible
@@ -201,7 +203,9 @@ async function main() {
     shares: cityListShares(),
     backDisabled: registry.get('back-btn').disabled,
     svgNodes: registry.get('map').children.length,
-    hint: registry.get('detail-hint')._text
+    hint: registry.get('detail-hint')._text,
+    price: registry.get('price')._text,
+    dayNote: registry.get('day-note')._text
     };
   };
 
@@ -242,11 +246,16 @@ async function main() {
   await settle();
   out.steps.push(record('after-reset'));
 
-  // switching to the offline map must not throw
-  registry.get('map-kind').value = 'svg';
-  registry.get('map-kind').dispatch('change');
+  // switching tabs must not throw and must not disturb the state
+  registry.get('tab-settings').dispatch('click');
   await settle();
-  out.steps.push(record('after-svg-map'));
+  out.tabsAfterSettings = { settings: registry.get('settings-panel').hidden,
+                            hop: registry.get('hop-panel').hidden };
+  registry.get('tab-hop').dispatch('click');
+  await settle();
+  out.steps.push(record('after-tab-switch'));
+  out.tabsAfterHop = { settings: registry.get('settings-panel').hidden,
+                       hop: registry.get('hop-panel').hidden };
 
   // a radius around the start must widen the set of start cities
   registry.get('start-radius').value = '400';
