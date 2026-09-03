@@ -73,6 +73,8 @@
 
   function countries() { return state.bundle.countries || []; }
 
+  function requirementCount() { return state.required.length + state.requiredCountries.length; }
+
   function countryByName(name) {
     return countries().filter(function (c) { return c.name === name; })[0] || null;
   }
@@ -409,6 +411,11 @@
   function renderCityList() {
     var entries = sortedEntries();
     els.cityList.textContent = '';
+    if (requirementCount() && state.shares.totalOneWay === 0) {
+      els.detailHint.textContent = 'Keine einzige Route erfüllt alle ' + requirementCount() +
+        ' Meilensteine gleichzeitig. Entferne welche, oder erhöhe max. Gap und Tage.';
+      return;
+    }
     if (!entries.length) {
       var dead = state.settings.mode === 'rt' && state.shares.cities.length > 0;
       els.detailHint.textContent = dead
@@ -418,6 +425,11 @@
       return;
     }
     var hidden = state.shares.cities.length - entries.length;
+    if (requirementCount() && state.shares.totalOneWay === 0) {
+      els.detailHint.textContent = 'Keine einzige Route erfüllt alle ' + requirementCount() +
+        ' Meilensteine gleichzeitig. Entferne welche, oder erhöhe max. Gap und Tage.';
+      return;
+    }
     els.detailHint.textContent = 'Größe = Anteil der Vollrouten über diesen Hop (' +
       (state.settings.mode === 'rt' ? 'Rundreise' : 'One-way') + ')' +
       (state.required.length ? ', gezählt werden nur Routen über ' + state.required.join(', ') : '') + '.' +
@@ -751,18 +763,20 @@
     window.setTimeout(step, 0);
   }
 
-  /* The current settings translated to the city indices of another bundle (all archive bundles
-   * share the manifest's city table, so the indices already match). */
+  /* Every archive window shares the manifest's city table, so a city index means the same city in
+   * all of them and the settings can be reused unchanged - including the required groups. */
   function settingsForBundle(bundle, settings) {
-    return { startCities: settings.startCities, returnCities: settings.returnCities,
-             requiredCities: settings.requiredCities, minGapHours: settings.minGapHours,
-             maxGapHours: settings.maxGapHours, maxFlights: settings.maxFlights,
-             dailyCap: settings.dailyCap, capMode: settings.capMode };
+    return settings;
   }
 
-  /* Fetch every archive day once, so the scan can run without waiting for the network. */
+  /* Fetch every archive day once, then re-scan.  The download happens on the first call only, the
+   * scan on every call - otherwise a changed setting would keep showing the previous verdict. */
   function preloadDays() {
-    if (!state.manifest || state.daysPreloaded) return Promise.resolve();
+    if (!state.manifest) return Promise.resolve();
+    if (state.daysPreloaded) {
+      if (state.settings) scanDays();
+      return Promise.resolve();
+    }
     state.daysPreloaded = true;
     return Promise.all(state.manifest.days.map(fetchDay)).then(function () {
       if (state.settings) scanDays();

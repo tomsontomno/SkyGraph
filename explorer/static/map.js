@@ -39,14 +39,9 @@
     // OpenStreetMap's tile policy requires visible attribution, so it stays - but small, dim and
     // without Leaflet's own advertising, which is optional.
     this.map.attributionControl.setPrefix('');
-    // Esri's dark canvas labels places in English and needs no API key, unlike CARTO; OSM's own
-    // tiles would label them in the local language.  Base and labels are two layers.
-    window.L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 12, attribution: '&copy; Esri' }).addTo(this.map);
-    window.L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 12, attribution: '' }).addTo(this.map);
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 12, attribution: '&copy; OSM'
+    }).addTo(this.map);
     this.layer = window.L.layerGroup().addTo(this.map);
   }
 

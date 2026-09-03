@@ -122,6 +122,34 @@ def test_browser_assembles_the_same_window_as_python():
                 f"{where}: js {js['oneWay']}/{js['roundTrip']} != py {expected.one_way}/{expected.round_trip}"
 
 
+def test_assembled_window_keeps_the_countries():
+    """The browser-assembled window must carry the manifest's countries.
+
+    They were dropped once, which silently removed every country from the Meilenstein search while
+    the manifest still had them - invisible unless something checks the assembled bundle.
+    """
+    from explorer import build as build_mod
+    from explorer.tests.test_js import node_binary, run_node
+
+    if node_binary() is None or not archive.ARCHIVE_DIR.is_dir():
+        return
+    index = archive.load_days()
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        manifest = build_mod.build_archive_day_bundles(index, out)
+        assert manifest['countries'], 'the manifest itself must list countries'
+        start = archive.windows(index, 4)[0][0][0]
+        days = sorted(d['date'] for d in manifest['days'])
+        window = days[days.index(start):days.index(start) + 4]
+        payloads = [json.loads((out / f"arch-day-{day}.json").read_text(encoding='utf-8')) for day in window]
+        js = run_node(None, {'startCities': ['Dortmund'], 'returnCities': ['Dortmund'],
+                             'minGapHours': 1, 'maxGapHours': 18, 'maxFlights': 3,
+                             'dailyCap': 3, 'capMode': 'rolling24'}, [],
+                      manifest=manifest, days=payloads)
+        assert js['countries'] == len(manifest['countries']), \
+            f"assembled window has {js['countries']} countries, manifest has {len(manifest['countries'])}"
+
+
 def test_real_archive_is_consistent():
     """The archive on disk must load, and its merge must beat the single scan it overlaps."""
     if not archive.ARCHIVE_DIR.is_dir():

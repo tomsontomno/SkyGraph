@@ -359,6 +359,26 @@ async function main() {
     for (let i = 0; i < 6; i++) await settle();
     out.steps.push(Object.assign(record('archive-first-day'),
       { archiveLabel: registry.get('archive-label')._text }));
+
+    // a milestone that no route can satisfy must make the day scan run AGAIN and report zero
+    out.dayNoteBefore = registry.get('day-note')._text;
+    registry.get('tab-milestones').dispatch('click');
+    registry.get('milestone-search').value = 'Male';
+    registry.get('milestone-search').dispatch('input');
+    await settle();
+    const impossible = registry.get('milestone-results').children
+      .find((li) => li.innerHTML.indexOf('>Male<') !== -1);
+    if (impossible) {
+      impossible.dispatch('click');
+      for (let i = 0; i < 200; i++) {
+        await settle();
+        if (registry.get('day-note')._text.indexOf('prüfe') === -1 &&
+            registry.get('day-note')._text !== out.dayNoteBefore) break;
+      }
+      out.dayNoteAfter = registry.get('day-note')._text;
+      out.countriesInArchive = registry.get('milestone-results').children
+        .filter((li) => li.innerHTML.indexOf('kind country') !== -1).length;
+    }
   }
 
   process.stdout.write(JSON.stringify(out));

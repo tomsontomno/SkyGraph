@@ -93,6 +93,7 @@
       day0: dates[0],
       days: dates,
       cities: manifest.cities,
+      countries: manifest.countries || [],
       flights: rows,
       stats: { cities: manifest.cities.length, edges: edges.size, flights: rows.length,
                invisibleFlights: rows.length - edges.size },

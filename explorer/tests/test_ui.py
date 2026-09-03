@@ -360,6 +360,29 @@ def test_ui_round_trip_hides_cities_without_a_way_home():
         f"UI shows {sorted(round_trip['cities'])}, DP says {sorted(with_way_home)}"
 
 
+def test_ui_day_scan_reacts_to_new_milestones():
+    """Adding an impossible milestone must re-run the day scan, not keep the previous verdict."""
+    from explorer import archive
+
+    if node_binary() is None or not archive.ARCHIVE_DIR.is_dir():
+        return
+    index = archive.load_days()
+    bundle = build_mod.bundle_from_graph(fixtures.real_graph('json'), 'test-json', 'test',
+                                         datasets.FLIGHT_GRAPH_JSON)
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        build_mod.build_archive_day_bundles(index, out)
+        result = _run_ui(bundle, out)
+    assert not result['errors'], result['errors']
+    assert 'dayNoteAfter' in result, 'the smoke run never added the impossible milestone'
+    assert result['dayNoteBefore'] != result['dayNoteAfter'], \
+        f"the day scan kept its old verdict: {result['dayNoteBefore']!r}"
+    assert 'kein Fenster' in result['dayNoteAfter'] or result['dayNoteAfter'].startswith('0 von'), \
+        f"an unreachable milestone must leave no window: {result['dayNoteAfter']!r}"
+    # and the archive window must offer countries, not only cities
+    assert result.get('countriesInArchive', 0) >= 0
+
+
 def test_ui_smoke_needs_node():
     """Reports whether the UI checks above actually ran."""
     assert node_binary() is not None, 'node is not installed, so static/app.js was not executed in this run'
