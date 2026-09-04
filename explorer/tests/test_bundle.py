@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -147,6 +148,14 @@ def test_export_site_is_self_contained():
 
         html = (site / 'index.html').read_text(encoding='utf-8')
         assert 'name="viewport"' in html, 'the page must declare a viewport for phones'
+        # every local asset must carry a content stamp, otherwise a browser keeps running old code
+        # after a deploy until its max-age expires
+        for asset in ('app.js', 'dp.js', 'map.js', 'style.css'):
+            assert f'{asset}?v=' in html, f"{asset} is not cache-busted in the export"
+        assert 'unpkg.com/leaflet@1.9.4/dist/leaflet.js"' in html, 'the CDN url must stay untouched'
+        # a changed asset must produce a different stamp
+        stamps = dict(re.findall(r'"([\w.]+\.(?:js|css))\?v=(\w+)"', html))
+        assert len(set(stamps.values())) == len(stamps), f"assets share a stamp: {stamps}"
         css = (site / 'style.css').read_text(encoding='utf-8')
         assert '@media (max-width: 900px)' in css, 'the mobile layout must ship with the export'
         config = json.loads((site / 'vercel.json').read_text(encoding='utf-8'))

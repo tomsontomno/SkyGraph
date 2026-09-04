@@ -221,20 +221,36 @@ def build_archive_windows(starts: Sequence[str], length: int = 4, out_dir: Path 
 ARCHIVE_MANIFEST = 'archive-days.json'
 STATIC_DIR = Path(__file__).resolve().parent / 'static'
 
-#: Vercel serves the folder as-is; the JSON payloads may be cached hard because a redeploy
-#: replaces them wholesale, index.html must not be cached so a redeploy is picked up.
+#: index.html is never cached and carries a fresh ?v= on every asset, so a redeploy always wins.
+#: The assets themselves may be cached hard because that version string changes with their content.
 VERCEL_CONFIG = {
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "cleanUrls": True,
     "headers": [
         {"source": "/bundles/(.*)",
-         "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, must-revalidate"}]},
+         "headers": [{"key": "Cache-Control", "value": "public, max-age=300, must-revalidate"}]},
         {"source": "/(.*)\\.(js|css)",
-         "headers": [{"key": "Cache-Control", "value": "public, max-age=3600, must-revalidate"}]},
+         "headers": [{"key": "Cache-Control", "value": "public, max-age=300, must-revalidate"}]},
         {"source": "/",
+         "headers": [{"key": "Cache-Control", "value": "no-store"}]},
+        {"source": "/index.html",
          "headers": [{"key": "Cache-Control", "value": "no-store"}]},
     ],
 }
+
+
+def stamp_assets(html: str, assets: Dict[str, str]) -> str:
+    """Append ``?v=<content hash>`` to every local script and stylesheet in ``html``.
+
+    Precondition: ``assets`` maps a file name to its hash.  Postcondition: a browser that already
+    holds an older file requests the new one, because the URL changed - without this a stale
+    app.js survives a deploy for as long as its max-age says, and the page silently runs old code.
+    Absolute URLs (the Leaflet CDN) are left alone.
+    """
+    for name, digest in assets.items():
+        for pattern in (f'src="{name}"', f'href="{name}"'):
+            html = html.replace(pattern, pattern[:-1] + f'?v={digest}"')
+    return html
 
 
 def export_site(out_dir: Path, bundle_dir: Path = BUNDLE_DIR) -> dict:
@@ -252,11 +268,21 @@ def export_site(out_dir: Path, bundle_dir: Path = BUNDLE_DIR) -> dict:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    import hashlib
+
     assets = []
+    digests: Dict[str, str] = {}
     for asset in sorted(STATIC_DIR.iterdir()):
-        if asset.is_file():
-            shutil.copy2(asset, out_dir / asset.name)
-            assets.append(asset.name)
+        if not asset.is_file():
+            continue
+        shutil.copy2(asset, out_dir / asset.name)
+        assets.append(asset.name)
+        if asset.suffix in ('.js', '.css'):
+            digests[asset.name] = hashlib.sha256(asset.read_bytes()).hexdigest()[:10]
+
+    index = out_dir / 'index.html'
+    if index.is_file() and digests:
+        index.write_text(stamp_assets(index.read_text(encoding='utf-8'), digests), encoding='utf-8')
 
     target_bundles = out_dir / 'bundles'
     if target_bundles.exists():
