@@ -426,8 +426,9 @@
    * still leave a feasible round trip, so every trip carries as many wishes as it can.  Greedy set
    * cover is within ln(n) of the optimum and needs only |milestones| feasibility probes per trip.
    *
-   * Returns {trips: [{route, covers}], unreachable: [key]} - `unreachable` are the milestones no
-   * single round trip in this network can reach at all.
+   * Returns {trips, unreachable, needMoreTrips}.  A milestone left over is probed once on its own:
+   * if even alone it has no round trip it is truly `unreachable`, otherwise the planner simply ran
+   * into `maxTrips` and it would need another trip.  Calling both "unreachable" would be a lie.
    */
   function planTrips(net, settings, milestones, maxTrips) {
     var remaining = milestones.slice();
@@ -456,7 +457,12 @@
       trips.push({ route: route, covers: chosen.map(function (m) { return m.key; }) });
       remaining = rest;
     }
-    return { trips: trips, unreachable: remaining.map(function (m) { return m.key; }) };
+    var unreachable = [], needMore = [];
+    remaining.forEach(function (m) {
+      if (new RouteCounter(net, withGroups([m])).hasAny(true)) needMore.push(m.key);
+      else unreachable.push(m.key);
+    });
+    return { trips: trips, unreachable: unreachable, needMoreTrips: needMore };
   }
 
   RouteCounter.prototype.totals = function (path) {

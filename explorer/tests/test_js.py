@@ -52,7 +52,8 @@ def network_from_bundle(bundle: dict) -> FlightNetwork:
 
 def run_node(bundle: Optional[dict], settings: dict, path, radius_center: Optional[str] = None,
              radius: Optional[float] = None, manifest: Optional[dict] = None,
-             days: Optional[list] = None, first_flight_only: bool = False) -> dict:
+             days: Optional[list] = None, first_flight_only: bool = False,
+             plan: Optional[dict] = None) -> dict:
     """Run the browser DP under node.  Either pass a ready ``bundle`` or a ``manifest`` plus ``days``
     for the archive path, in which case dp.js assembles the window itself."""
     node = node_binary()
@@ -62,7 +63,8 @@ def run_node(bundle: Optional[dict], settings: dict, path, radius_center: Option
         raise ValueError("pass either a bundle or a manifest with its day files")
     payload = {'bundle': bundle, 'settings': settings, 'path': list(path),
                'radiusCenter': radius_center, 'radius': radius,
-               'manifest': manifest, 'days': days, 'firstFlightOnly': first_flight_only}
+               'manifest': manifest, 'days': days, 'firstFlightOnly': first_flight_only,
+               'plan': plan}
     with tempfile.TemporaryDirectory() as tmp:
         request = Path(tmp) / 'request.json'
         request.write_text(json.dumps(payload), encoding='utf-8')
@@ -186,6 +188,43 @@ def test_js_radius_matches_python():
             assert abs(hit['km'] - reference) < 1e-6, f"{center} -> {hit['city']}: js {hit['km']} != py {reference}"
     assert coords.cities_within('Frankfurt', 150.0, names) == ['Frankfurt', 'Cologne', 'Karlsruhe/Baden-Baden'], \
         'the documented Frankfurt example must hold'
+
+
+def test_planner_separates_unreachable_from_out_of_trips():
+    """A milestone left over must say WHY: no route at all, or the trip budget ran out.
+
+    Reporting both as "unreachable" hid that two countries were perfectly reachable and only lost
+    to a limit of six trips.
+    """
+    if node_binary() is None:
+        return
+    graph = fixtures.real_graph('json')
+    bundle = build_mod.bundle_from_graph(graph, 'test-json', 'test',
+                                         build_mod.PROJECT_ROOT / 'data' / 'current' / 'flight_graph.json')
+    settings = {'startCities': ['Dortmund'], 'returnCities': ['Dortmund'], 'minGapHours': 1,
+                'maxGapHours': 24, 'maxFlights': None, 'dailyCap': 3, 'capMode': 'calendar',
+                'mode': 'rt'}
+    milestones = [{'key': name, 'cities': [name]}
+                  for name in ('Abu Dhabi', 'Tenerife', 'Athens', 'Istanbul', 'Male', 'Reykjavik')]
+
+    tight = run_node(bundle, settings, [], plan={'milestones': milestones, 'maxTrips': 1})
+    loose = run_node(bundle, settings, [], plan={'milestones': milestones, 'maxTrips': 10})
+
+    assert len(tight['trips']) == 1, tight['trips']
+    assert len(loose['trips']) >= len(tight['trips'])
+    # nothing may be called unreachable in the tight run that the loose run actually covers
+    covered_loose = {key for trip in loose['trips'] for key in trip['covers']}
+    assert not (set(tight['unreachable']) & covered_loose), \
+        f"{sorted(set(tight['unreachable']) & covered_loose)} were reachable but called unreachable"
+    # what the budget cut off must land in needMoreTrips instead
+    cut = covered_loose - {key for trip in tight['trips'] for key in trip['covers']}
+    assert cut <= set(tight['needMoreTrips']), \
+        f"{sorted(cut - set(tight['needMoreTrips']))} vanished from the report entirely"
+    # the truly impossible ones stay impossible however many trips are allowed
+    assert set(loose['unreachable']) <= set(tight['unreachable'])
+    assert 'Male' in loose['unreachable'], loose['unreachable']
+    for trip in loose['trips']:
+        assert trip['cities'][0] == 'Dortmund' and trip['cities'][-1] == 'Dortmund', trip['cities']
 
 
 def test_node_is_available():

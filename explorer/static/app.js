@@ -40,6 +40,7 @@
 
   var WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   var PRICE_PER_FLIGHT = 9.99;
+  var PLAN_MAX_TRIPS = 10;
 
   /* "Di 17.12.2024" from an ISO date, computed from the parts so no timezone can shift the day. */
   function fmtDate(isoDate) {
@@ -117,6 +118,26 @@
   function cityCoveredByCountry(name) {
     var record = state.bundle.cities.filter(function (c) { return c.name === name; })[0];
     return !!(record && record.country && state.requiredCountries.indexOf(record.country) !== -1);
+  }
+
+  /* Every country preferences.json marks as not yet visited, in one go. */
+  function addAllNewCountries() {
+    var fresh = countries().filter(function (country) {
+      return country.new && state.requiredCountries.indexOf(country.name) === -1;
+    });
+    if (!fresh.length) return;
+    var covered = new Set();
+    fresh.forEach(function (country) { country.cities.forEach(function (i) { covered.add(cityName(i)); }); });
+    state.required = state.required.filter(function (city) { return !covered.has(city); });
+    state.requiredCountries = state.requiredCountries.concat(fresh.map(function (c) { return c.name; }));
+    recompute(false);
+  }
+
+  function clearMilestones() {
+    if (!requirementCount()) return;
+    state.required = [];
+    state.requiredCountries = [];
+    recompute(false);
   }
 
   function addRequiredCity(name) {
@@ -327,6 +348,9 @@
                   note: covered ? 'durch Land abgedeckt' : (city.countryNew ? 'neues Land' : ''),
                   chosen: covered || state.required.indexOf(city.name) !== -1 });
     });
+    // one alphabetical list, countries and cities mixed - the badge tells them apart, and nothing
+    // is cut off: with 51 countries a "first 60 rows" cap ended the list in the letter A
+    rows.sort(function (a, b) { return a.label.localeCompare(b.label, 'de'); });
     els.milestoneResults.textContent = '';
     if (!rows.length) {
       var empty = document.createElement('li');
@@ -335,7 +359,7 @@
       els.milestoneResults.appendChild(empty);
       return;
     }
-    rows.slice(0, 60).forEach(function (row) {
+    rows.forEach(function (row) {
       var li = document.createElement('li');
       li.className = row.chosen ? 'chosen' : '';
       li.innerHTML = '<span class="kind ' + row.kind + '">' +
@@ -370,7 +394,7 @@
     els.planBtn.textContent = 'plant …';
     window.setTimeout(function () {
       try {
-        var plan = DP.planTrips(state.net, state.settings, milestones, 6);
+        var plan = DP.planTrips(state.net, state.settings, milestones, PLAN_MAX_TRIPS);
         state.plan = plan;
         renderPlan(plan, milestones);
       } catch (err) {
@@ -410,11 +434,20 @@
       node.addEventListener('click', function () { showTrip(trip.route); });
       els.planOut.appendChild(node);
     });
+    var name = function (key) { return labelOf[key] || key; };
+    if ((plan.needMoreTrips || []).length) {
+      var more = document.createElement('div');
+      more.className = 'missing';
+      more.innerHTML = 'Bräuchte weitere Reisen (einzeln machbar, aber das Limit von ' +
+        PLAN_MAX_TRIPS + ' Reisen ist erreicht): <b>' +
+        escapeHtml(plan.needMoreTrips.map(name).join(', ')) + '</b>';
+      els.planOut.appendChild(more);
+    }
     if (plan.unreachable.length) {
       var missing = document.createElement('div');
       missing.className = 'missing';
-      missing.innerHTML = 'In diesem Fenster nicht erreichbar: <b>' +
-        escapeHtml(plan.unreachable.map(function (k) { return labelOf[k] || k; }).join(', ')) + '</b>';
+      missing.innerHTML = 'In diesem Fenster gar nicht als Rundreise erreichbar: <b>' +
+        escapeHtml(plan.unreachable.map(name).join(', ')) + '</b>';
       els.planOut.appendChild(missing);
     }
   }
@@ -1001,6 +1034,8 @@
     els.milestoneSearch.addEventListener('input', renderMilestoneResults);
     els.pickToggle.addEventListener('click', function () { setPickMode(!state.pickMode); });
     els.planBtn.addEventListener('click', runPlanner);
+    els.newCountriesBtn.addEventListener('click', addAllNewCountries);
+    els.clearBtn.addEventListener('click', clearMilestones);
     els.tabMilestones.addEventListener('click', function () { showTab('milestones'); });
     els.panelToggle.addEventListener('click', function () {
       showTab(state.tab === 'settings' ? 'hop' : 'settings');
@@ -1054,6 +1089,7 @@
       milestoneSearch: $('milestone-search'), milestoneResults: $('milestone-results'),
       pickToggle: $('pick-toggle'), pickBanner: $('pick-banner'),
       planBtn: $('plan-btn'), planOut: $('plan-out'),
+      newCountriesBtn: $('new-countries-btn'), clearBtn: $('clear-milestones'),
       settingsPanel: $('settings-panel'), sidebar: $('sidebar'), hopPanel: $('hop-panel'),
       tabHop: $('tab-hop'), tabSettings: $('tab-settings'), crumbs: $('crumbs'), price: $('price'),
       dayNote: $('day-note')

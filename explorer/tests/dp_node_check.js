@@ -46,6 +46,26 @@ function main() {
     mode: s.mode || 'rt'
   };
 
+  // planning mode: cover the given milestones with as few round trips as possible
+  if (request.plan) {
+    const milestones = request.plan.milestones.map((m) => ({
+      key: m.key,
+      cities: m.cities.map((name) => (indexOf.has(name) ? indexOf.get(name) : -1)).filter((i) => i >= 0)
+    }));
+    const plan = DP.planTrips(net, settings, milestones, request.plan.maxTrips);
+    process.stdout.write(JSON.stringify({
+      trips: plan.trips.map((trip) => ({
+        flights: trip.route.length,
+        covers: trip.covers,
+        cities: [bundle.cities[net.flights[trip.route[0]].origin].name].concat(
+          trip.route.map((i) => bundle.cities[net.flights[i].dest].name))
+      })),
+      unreachable: plan.unreachable,
+      needMoreTrips: plan.needMoreTrips || []
+    }));
+    return;
+  }
+
   const counter = new DP.RouteCounter(net, settings);
   const requestedPath = request.path || [];
   const shares = counter.cityShares(requestedPath);

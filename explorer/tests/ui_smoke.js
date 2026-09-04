@@ -71,7 +71,7 @@ const ELEMENT_IDS = [
   'tab-hop', 'tab-settings',
   'archive-bar', 'archive-day', 'archive-label', 'archive-length', 'archive-original',
   'required-chips', 'milestones-panel', 'tab-milestones', 'milestone-search',
-  'milestone-results', 'pick-toggle', 'pick-banner', 'plan-btn', 'plan-out',
+  'milestone-results', 'pick-toggle', 'pick-banner', 'plan-btn', 'plan-out', 'new-countries-btn', 'clear-milestones',
   'panel-toggle', 'settings-panel', 'sidebar', 'crumbs', 'price', 'day-note'
 ];
 
