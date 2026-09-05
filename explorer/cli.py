@@ -10,7 +10,7 @@ from typing import List, Optional
 from explorer import build as build_mod
 from explorer import server as server_mod
 
-SUBCOMMANDS = ('build', 'serve', 'selftest', 'archive', 'export')
+SUBCOMMANDS = ('build', 'serve', 'selftest', 'archive', 'export', 'risk')
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +38,15 @@ def build_parser() -> argparse.ArgumentParser:
     export = sub.add_parser('export', help='UI und Bundles in einen statischen Ordner legen (Vercel & Co.)')
     export.add_argument('--out-dir', type=Path, default=build_mod.PROJECT_ROOT / 'data' / 'site')
     export.add_argument('--bundle-dir', type=Path, default=build_mod.BUNDLE_DIR)
+
+    risk = sub.add_parser('risk', help='Wie oft käme man nach einem One-way nicht mehr nach Hause?')
+    risk.add_argument('--home', nargs='*', default=None,
+                      help='Heimatstädte; Standard: Dortmund plus alles im 180-km-Umkreis')
+    risk.add_argument('--radius', type=float, default=180.0)
+    risk.add_argument('--min-gap', type=float, default=1.0)
+    risk.add_argument('--max-gap', type=float, default=18.0)
+    risk.add_argument('--horizon', type=float, default=72.0, help='Buchungshorizont in Stunden')
+    risk.add_argument('--runs', type=int, default=3, help='wie viele der längsten Zeiträume prüfen')
 
     archive = sub.add_parser('archive', help='Archiv-Scans auswerten (was liegt da, wie dicht ist welcher Tag)')
     archive.add_argument('--windows', type=int, default=10, metavar='N', help='N dichteste Fenster zeigen')
@@ -119,6 +128,48 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_risk(args: argparse.Namespace) -> int:
+    """Judge every landing in the longest contiguous stretches of the archive."""
+    from datetime import date, timedelta
+
+    from explorer import archive as archive_mod, coords, strand
+    from explorer.dp import FlightNetwork
+
+    try:
+        index = archive_mod.load_days()
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    days = index.sorted_days
+    if not days:
+        print("Das Archiv enthält keine brauchbaren Scans.", file=sys.stderr)
+        return 2
+
+    runs, current = [], [days[0]]
+    for previous, following in zip(days, days[1:]):
+        if date.fromisoformat(following) - date.fromisoformat(previous) == timedelta(days=1):
+            current.append(following)
+        else:
+            runs.append(current)
+            current = [following]
+    runs.append(current)
+    runs.sort(key=len, reverse=True)
+
+    home = frozenset(args.home) if args.home else frozenset(
+        coords.cities_within('Dortmund', args.radius, sorted(index.cities)))
+    print(f"Heimat: {', '.join(sorted(home))}")
+    print(f"Buchungshorizont: {args.horizon:.0f} h · Umsteigefenster {args.min_gap:.0f}–{args.max_gap:.0f} h\n")
+
+    for run in runs[:max(1, args.runs)]:
+        graph = archive_mod.graph_from_flights(index.flights_on(run))
+        network = FlightNetwork.from_graph(graph)
+        report = strand.analyse(network, home, args.min_gap, args.max_gap, args.horizon)
+        label = (f"{run[0]} bis {run[-1]} · {len(run)} Tage · {len(network.flights):,} Flüge")
+        print('\n'.join(strand.format_report(report, label)))
+        print()
+    return 0
+
+
 def cmd_archive(args: argparse.Namespace) -> int:
     from explorer import archive as archive_mod
 
@@ -196,5 +247,5 @@ def main(argv: Optional[List[str]] = None) -> int:
         build_parser().print_help()
         return 0
     handlers = {'build': cmd_build, 'serve': cmd_serve, 'selftest': cmd_selftest,
-                'archive': cmd_archive, 'export': cmd_export}
+                'archive': cmd_archive, 'export': cmd_export, 'risk': cmd_risk}
     return handlers[args.command](args)

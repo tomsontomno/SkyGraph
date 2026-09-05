@@ -5,12 +5,12 @@ import inspect
 import traceback
 from typing import Callable, List, Tuple
 
-from explorer.tests import test_archive, test_bundle, test_dp, test_js, test_ui
+from explorer.tests import test_archive, test_bundle, test_dp, test_js, test_strand, test_ui
 
 
 def collect() -> List[Tuple[str, Callable[[], None]]]:
     tests = []
-    for module in (test_dp, test_js, test_ui, test_bundle, test_archive):
+    for module in (test_dp, test_js, test_ui, test_bundle, test_archive, test_strand):
         for name, func in inspect.getmembers(module, inspect.isfunction):
             if name.startswith('test_') and func.__module__ == module.__name__:
                 tests.append((f"{module.__name__.rsplit('.', 1)[-1]}.{name}", func))
