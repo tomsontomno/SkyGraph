@@ -168,6 +168,18 @@ require(path.join(__dirname, '..', 'static', 'app.js'));
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 25));
 
+/* Wait until the day scan is done instead of guessing a number of ticks - the scan runs in 40 ms
+ * chunks and takes far longer under this stub than in a browser, which made the test flaky. */
+async function settleScan(registry, maxTicks) {
+  const limit = maxTicks || 4000;
+  for (let i = 0; i < limit; i++) {
+    await settle();
+    const note = registry.get('day-note')._text;
+    if (note && note.indexOf('prüfe') === -1) return note;
+  }
+  return registry.get('day-note')._text;
+}
+
 function cityListNames() {
   return registry.get('city-list').children.map((li) => {
     const match = /<span class="name">([^<]*)<\/span>/.exec(li.innerHTML);
@@ -347,6 +359,7 @@ async function main() {
     registry.get('scan-select').value = '__archive__';
     registry.get('scan-select').dispatch('change');
     for (let i = 0; i < 6; i++) await settle();
+    await settleScan(registry);
     out.steps.push(Object.assign(record('archive-window'),
       { archiveLabel: registry.get('archive-label')._text, barHidden: registry.get('archive-bar').hidden }));
     registry.get('archive-original').checked = true;
@@ -371,12 +384,7 @@ async function main() {
       .find((li) => li.innerHTML.indexOf('>Male<') !== -1);
     if (impossible) {
       impossible.dispatch('click');
-      for (let i = 0; i < 200; i++) {
-        await settle();
-        if (registry.get('day-note')._text.indexOf('prüfe') === -1 &&
-            registry.get('day-note')._text !== out.dayNoteBefore) break;
-      }
-      out.dayNoteAfter = registry.get('day-note')._text;
+      out.dayNoteAfter = await settleScan(registry);
       out.labelAfterImpossible = registry.get('archive-label')._text;
       out.countriesInArchive = registry.get('milestone-results').children
         .filter((li) => li.innerHTML.indexOf('kind country') !== -1).length;
@@ -391,15 +399,13 @@ async function main() {
     for (let i = 0; i < 8; i++) await settle();
     registry.get('max-flights').value = '4';
     registry.get('max-flights').dispatch('input');
-    for (let i = 0; i < 400; i++) {
-      await settle();
-      if (registry.get('day-note')._text.indexOf('prüfe') === -1) break;
-    }
+    await settleScan(registry);
     const label = registry.get('archive-label')._text;
     const max = registry.get('archive-day').max;
     // a second identical render must not restart the scan nor move the window
     registry.get('highlight-new').dispatch('change');
     for (let i = 0; i < 20; i++) await settle();
+    await settleScan(registry);
     out.sliderStable = {
       label: label, labelAfterRerender: registry.get('archive-label')._text,
       max: String(max), maxAfterRerender: String(registry.get('archive-day').max),
